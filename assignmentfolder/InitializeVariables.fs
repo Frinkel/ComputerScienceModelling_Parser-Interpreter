@@ -67,7 +67,7 @@ let (|Regex|_|) pattern input =
 
 let numberChecker (n:string) =
     match n with
-    | Regex @"(^[-+]?[0-9]+$)" [ num ] -> 
+    | Regex @"(^[-+]?\s*[0-9]+$)" [ num ] -> 
             printfn "Variable succesfully initialized."
             num |> int
     | _ ->  printfn "ERROR: Variable failed to hold correct syntax of \"int\""
@@ -75,7 +75,7 @@ let numberChecker (n:string) =
 
 let arrayChecker (a:string) =
     match a with
-    | Regex @"^\{((\s*[0-9]+\s*,\s*)+\s*[0-9]+\s*)\}" [ num; d ] ->
+    | Regex @"^\{((\s*[0-9]+\s*,?\s*)+\s*[0-9]*\s*)\}" [ num; d ] ->
         num
     | _ ->  printfn "ERROR: Array failed to hold correct syntax of \"{int 1, int 2, ..., int N}\""
             failwith "Array failed to hold correct syntax of \"{int 1, int 2, ..., int N}\""
