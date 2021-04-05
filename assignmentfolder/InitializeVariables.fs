@@ -55,16 +55,26 @@ and AddToList l x =
     else l @ [x]
 and ListContains list n = List.exists (fun x -> x = n) list
 
+// Checks wether theres duplicate names in the variable assignments
+let rec checkDuplicateNames (varList: AExpr List) (OGVarList: AExpr List) (nameList: string List) = 
+    match varList with
+    | [] -> OGVarList
+    | head::tail -> match head with
+                        | Var(s)        when not(ListContains nameList s) -> checkDuplicateNames tail OGVarList (nameList@[s])
+                        | Array(s,n)    when not(ListContains nameList s) -> checkDuplicateNames tail OGVarList (nameList@[s])
+                        | _                                               -> printfn  "Duplicate name found, please use different names for assignments!"
+                                                                             failwith "Duplicate name found, please use different names for assignments!"
 
-let findVariables (l:(int * SubTypes * int)List) = RemoveDuplicates (findVariablesWithDuplicates l []) []
+let findVariables (l:(int * SubTypes * int)List) = checkDuplicateNames (RemoveDuplicates (findVariablesWithDuplicates l []) []) (RemoveDuplicates (findVariablesWithDuplicates l []) []) []
 
 
-
+// From: https://stackoverflow.com/questions/53818476/f-match-many-regex
 let (|Regex|_|) pattern input =
     let m = Regex.Match(input, pattern)
     if m.Success then Some(List.tail [ for g in m.Groups -> g.Value ])
     else None
 
+// Check whether a string only consitst of an integer
 let numberChecker (n:string) =
     match n with
     | Regex @"(^[-+]?\s*[0-9]+$)" [ num ] -> 
@@ -73,6 +83,7 @@ let numberChecker (n:string) =
     | _ ->  printfn "ERROR: Variable failed to hold correct syntax of \"int\""
             failwith "Variable failed to hold correct syntax of \"int\""
 
+// Check if the array syntax holds
 let arrayChecker (a:string) =
     match a with
     | Regex @"^\{((\s*[0-9]+\s*,?\s*)+\s*[0-9]*\s*)\}" [ num; d ] ->
@@ -80,6 +91,7 @@ let arrayChecker (a:string) =
     | _ ->  printfn "ERROR: Array failed to hold correct syntax of \"{int 1, int 2, ..., int N}\""
             failwith "Array failed to hold correct syntax of \"{int 1, int 2, ..., int N}\""
 
+// Convert a string list to a int list
 let arrayStringToList (s:string) =
     let sA = Seq.toList (arrayChecker s)
     let rec arrayStringToListW (l:char List) (s:string) (nl:int List) =
@@ -90,8 +102,6 @@ let arrayStringToList (s:string) =
         | (x:char)::tail -> arrayStringToListW tail (s + string x) (nl)
 
     arrayStringToListW sA "" []
-
-
 
 let rec InitializationOfVariablesAndArrays (l: AExpr List) (nl:(AExpr * (int)List) List) = 
     match l with
@@ -106,7 +116,3 @@ and getArrayInitializationFromUser (x:string) =
     printfn "Enter all ellements of your array with the syntax \"{int 1, int 2, ..., int N}\""
     printf "%s :=" x
     [Array(x,Num(1)), arrayStringToList(Console.ReadLine())]
-// "a:=" console.ReadLine
-// "b:=" console.ReadLine
-
-//and checkArray 
