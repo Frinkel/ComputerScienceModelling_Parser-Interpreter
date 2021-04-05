@@ -116,7 +116,8 @@ let rec compute n =
 
         // Interpret the program
         // use printAssignmentList to print the list!
-        interpret edgeList edgeList initVars 0
+        let varList = interpret edgeList edgeList initVars 0
+        printAssignmentList varList
 
 
         //writes the output to a dot file, that can be made into graphical representation using graphviz
@@ -129,4 +130,3 @@ let rec compute n =
 
 // Start interacting with the user
 compute 3
-;;

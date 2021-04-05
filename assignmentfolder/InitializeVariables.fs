@@ -23,7 +23,7 @@ and findVariableFromAExpr (a:AExpr) (nl:AExpr List) =
     match a with
     | Num(x)            -> nl
     | Var(x)            -> nl@[a]
-    | Array(x,y)        -> nl@[Array(x,(Num(0)))]
+    | Array(x,y)        -> nl@[Array(x,(Num(0)))]@(findVariableFromAExpr y [])
     | TimesExpr(x,y)    -> (findVariableFromAExpr x []) @ (findVariableFromAExpr y [])
     | DivExpr(x,y)      -> (findVariableFromAExpr x []) @ (findVariableFromAExpr y [])
     | PlusExpr(x,y)     -> (findVariableFromAExpr x []) @ (findVariableFromAExpr y [])
