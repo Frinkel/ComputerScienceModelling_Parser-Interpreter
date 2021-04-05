@@ -13,14 +13,41 @@ let rec getVariable (a:AExpr) (varList:(AExpr * (int)List) List) =
     | _ ->  printfn "ERROR VARIABLE DOES NOT EXIST!!!!!!!!!!!!!"
             (0)
 
+let rec setArray (a:string) (index:int) (i:int) (varList:(AExpr * (int)List) List) (nl:(AExpr * (int)List) List) =
+    match varList with
+    | (Array(x,y),l)::tail when x = a -> if l.Length <= index 
+                                         then printfn "Index %i out of bounds for array %s" index x
+                                              failwith ""
+                                         else  setArray a index i tail ((Array(x,y),(getElement index i l 0 []))::nl) 
+    | (a1,l)::tail             -> setArray a index i tail ((a1,l)::nl) 
+    | _ ->  nl
+and getElement (index:int) (i:int) (l:(int)List) (j:int) (nl:(int)List)=
+    match l with
+    | x::tail when j = index -> getElement index i tail (j+1) (nl@[i])
+    | x::tail                -> getElement index i tail (j+1) (nl@[x])
+    | _ -> nl
+
+
+let rec getArray (a:string) (index:int) (varList:(AExpr * (int)List) List) =
+    match varList with
+    | (Array(x,y),l)::tail when x = a -> if l.Length <= index 
+                                         then printfn "Index %i out of bounds for array %s" index x
+                                              failwith ""
+                                         else l.[index]
+    | (a1,l)::tail             -> getArray a index tail
+    | _ ->  printfn "ERROR VARIABLE DOES NOT EXIST!!!!!!!!!!!!!"
+            failwith ""
+
 let rec pow a b =
-    if b = 0 then 1
-    else if b <> 1 then a * (pow a (b-1))
-    else a
+    if b < 0        then printfn "ERROR CANNOT HAVE NEGATIVE EXPONENT!!"
+                         0
+    else if b <> 0  then a * (pow a (b-1))
+    else                 1
 
 let rec aval (a:AExpr) (varList:(AExpr * (int)List) List) =
     match a with
     | Num(x)            -> x
+    | Array(var,x)      -> (getArray var (aval x varList) varList)
     | Var(x)            -> (getVariable a varList)
     | TimesExpr(x,y)    -> (aval x varList) * (aval y varList)
     | DivExpr(x,y)      -> (aval x varList) / (aval y varList)
@@ -33,7 +60,11 @@ let rec aval (a:AExpr) (varList:(AExpr * (int)List) List) =
 
 let rec cval (c:Command) (varList:(AExpr * (int)List) List) =
     match c with
-    | Assign(var, x) -> setVariable var (aval x varList) varList []
+    | Assign(var, x) -> match var with
+                        | Var(v)       -> setVariable var (aval x varList) varList []
+                        | Array(v1,v2) -> setArray v1 (aval v2 varList) (aval x varList) varList []
+
+
 
 let rec bval b (varList:(AExpr * (int)List) List) =
     match b with
