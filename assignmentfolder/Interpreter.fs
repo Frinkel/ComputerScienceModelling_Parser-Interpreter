@@ -59,7 +59,7 @@ let rec interpret (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes 
                                                                       interpret edges edges varList q1
                                     | _                            -> interpret edges tail varList q
     | (q0,e,q1)::tail -> interpret edges tail varList q
-    | _ when q = 1    -> printfn "Succes %A" varList 
-    | _               -> printfn "Error! %A at node %i " varList q
+    | _ when q = 1    -> printfn "Succes %A finished at node %i " varList q
+    | _               -> printfn "Error! %A stuck at node %i " varList q
 
    

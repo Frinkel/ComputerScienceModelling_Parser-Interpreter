@@ -108,12 +108,14 @@ let rec compute n =
         // Initialization of Variables and Arrays
         printfn "Initialization of Variables and Arrays:"
         let initVars = InitializationOfVariablesAndArrays varList []
-        printfn "Initialization done:\n%A" initVars
+        printfn "Initialization done:\n%A\n" initVars
 
         // Get a printable string from the edge list
         let printableString = getStringFromList edgeList ""
         printfn "%s" printableString
 
+        // Interpret the program
+        // use printAssignmentList to print the list!
         interpret edgeList edgeList initVars 0
 
 
