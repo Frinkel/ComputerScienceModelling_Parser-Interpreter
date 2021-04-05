@@ -1,0 +1,21 @@
+
+HELLO:
+LEXER:
+../FSLEXYACC_FILES/FsLexYacc/10.0.0/build/fslex/net46/fslex.exe HelloLexer.fsl --unicode
+PARSER:
+../FSLEXYACC_FILES/fslexyacc/10.0.0/build/fsyacc/net46/fsyacc.exe HelloParser.fsp --module HelloParser
+
+CALCULATOR:
+LEXER:
+../FSLEXYACC_FILES/FsLexYacc/10.0.0/build/fslex/net46/fslex.exe CalculatorLexer.fsl --unicode
+PARSER:
+../FSLEXYACC_FILES/fslexyacc/10.0.0/build/fsyacc/net46/fsyacc.exe CalculatorParser.fsp --module CalculatorParser
+
+
+GCL:
+LEXER:
+../FSLEXYACC_FILES/FsLexYacc/10.0.0/build/fslex/net46/fslex.exe GCLLexer.fsl --unicode
+PARSER:
+../FSLEXYACC_FILES/fslexyacc/10.0.0/build/fsyacc/net46/fsyacc.exe GCLParser.fsp --module GCLParser
+
+#r "../FSLEXYACC_FILES/fslexyacc.runtime/10.0.0/lib/net46/fslexYacc.Runtime.dll"

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+  <metadata>
+    <id>FsLexYacc.Runtime</id>
+    <version>10.0.0</version>
+    <authors>Microsoft Corporation, Don Syme, F# Software Foundation contributors</authors>
+    <licenseUrl>https://github.com/fsprojects/FsLexYacc/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>https://github.com/fsprojects/FsLexYacc</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/fsprojects/FsLexYacc/master/docs/files/img/logo.png</iconUrl>
+    <description>Runtime for FsLex/FsYacc lexer/parser generation tools</description>
+    <summary>Runtime for FsLex/FsYacc lexer/parser generation tools</summary>
+    <releaseNotes>Migration to netcoreapp3.0 based versions of FxLex and FsYacc</releaseNotes>
+    <tags>F# fsharp yacc fsyacc lex parsing lexing fslex</tags>
+    <dependencies>
+      <dependency id="FSharp.Core" version="4.3.4" />
+    </dependencies>
+  </metadata>
+</package>
