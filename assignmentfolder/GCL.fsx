@@ -84,6 +84,8 @@ let parse input =
     // return the result of parsing (i.e. value of type "expr")
     res
 
+
+
 // We implement here the function that interacts with the user
 let rec compute n =
     if n = 0 then
@@ -98,35 +100,44 @@ let rec compute n =
         // Get a list of all edges
         let edgeList = edges 0 e 1 1 []
         let edgeList = concatBExpr edgeList []
-        let DFA = false
+
+        printfn ""
+        printf "Write \'d\' for DFA or \'n\' for NFA: "
+        let DFA = dfaOrnfa (Console.ReadLine())
         let edgeList = toDFA edgeList DFA // Converts to DFA
 
         // Find all variables
         let varList = findVariables edgeList
-        printfn "%A" varList
+        //printfn "%A" varList
+
+
+        printfn ""
+        // Print the program graph (textual)
+        printfn "Textual representation of the program graph (see file, \'graph.dot\'):"
+        let edgeListString = getStringFromList edgeList ""  
+        printfn "%s" edgeListString
+        
 
         // Initialization of Variables and Arrays
         printfn "Initialization of Variables and Arrays:"
         let initVars = InitializationOfVariablesAndArrays varList []
-        printfn "Initialization done:\n%A\n" initVars
-
-        // Get a printable string from the edge list
-        let printableString = getStringFromList edgeList ""
-        printfn "%s" printableString
-
+        //printfn "Initialization done:\n%A\n" initVars
+        
         // Interpret the program
-        // use printAssignmentList to print the list!
+        printfn ""
+        printfn "Interpretting the GCL program:"
         let varList = interpret edgeList edgeList initVars 0
+
+        printfn ""
+        printfn "Final variable assignment:"
         printAssignmentList varList
-
-
-        //writes the output to a dot file, that can be made into graphical representation using graphviz
-        File.WriteAllText ("assignmentfolder/graph.dot", "digraph G {\n" + printableString + "}")
+        // Writes the output to a dot file, that can be made into graphical representation using graphviz
+        // Get a printable string from the edge list
+        
+        File.WriteAllText ("graph.dot", "digraph G {\n" + edgeListString + "}")
 
         compute n
         with err -> compute (n-1)
-
-        //File.WriteAllText("test.txt", edges 0 e 1 1)
 
 // Start interacting with the user
 compute 3

@@ -74,11 +74,21 @@ let (|Regex|_|) pattern input =
     if m.Success then Some(List.tail [ for g in m.Groups -> g.Value ])
     else None
 
+
+let dfaOrnfa c = 
+    match c with
+    | Regex @"(^d)" [ chr ] -> printfn "DFA chosen."
+                               true
+    | Regex @"(^n)" [ chr ] -> printfn "NFA chosen."
+                               false
+    | _                     -> printfn "Error: Please write either \'d\' or \'n\'."
+                               failwith "Neither chosen"
+
 // Check whether a string only consitst of an integer
 let numberChecker (n:string) =
     match n with
     | Regex @"(^[-+]?\s*[0-9]+$)" [ num ] -> 
-            printfn "Variable succesfully initialized."
+            //printfn "Variable succesfully initialized."
             num |> int
     | _ ->  printfn "ERROR: Variable failed to hold correct syntax of \"int\""
             failwith "Variable failed to hold correct syntax of \"int\""

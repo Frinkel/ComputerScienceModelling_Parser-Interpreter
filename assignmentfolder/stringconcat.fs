@@ -54,8 +54,8 @@ let rec getStringFromList (l:(int * SubTypes * int)List) (str:string) =
     | (q0, c, q1)::tail -> match (c) with 
                               | SubC(x) -> getStringFromList tail (str + (stringCEdges q0 x q1))
                               | SubB(x) -> getStringFromList tail (str + (stringBEdges q0 x q1))
-//let testList:(int * SubTypes * int * int)List = [(0, SubC((If(ExecuteIf(NotExpr(Bool(false)), Assign(Var("x"), Num(2.0)))))), 1, 10); (0, SubB(Bool(true)), 1, 10); (0, SubC((If(ExecuteIf(NotExpr(Bool(false)), Assign(Var("x"), Num(2.0)))))), 1, 10)];;
 
+// Prints the assignment list, after the program have been run
 let rec printAssignmentList (aList:(AExpr * (int)List) List) =
     match aList with
     | [] -> printf ""
@@ -76,11 +76,12 @@ and getArray n newString =
 
 
 // Checks wether theres duplicate names in the variable assignments
-let rec checkDuplicateNames (varList: AExpr List) (OGVarList: AExpr List) (nameList: string List) = 
+let rec checkDuplicateNames (varList: AExpr List) (ogVarList: AExpr List) (nameList: string List) = 
     match varList with
-    | [] -> OGVarList
+    | [] -> ogVarList
     | head::tail -> match head with
-                        | Var(s)        when not(ListContains nameList s) -> checkDuplicateNames tail OGVarList (nameList@[s])
-                        | Array(s,n)    when not(ListContains nameList s) -> checkDuplicateNames tail OGVarList (nameList@[s])
+                        | Var(s)        when not(ListContains nameList s) -> checkDuplicateNames tail ogVarList (nameList@[s])
+                        | Array(s,n)    when not(ListContains nameList s) -> checkDuplicateNames tail ogVarList (nameList@[s])
                         | _                                               -> printfn  "Duplicate name found, please use different names for assignments!"
                                                                              failwith "Duplicate name found, please use different names for assignments!"
+and ListContains list n = List.exists (fun x -> x = n) list

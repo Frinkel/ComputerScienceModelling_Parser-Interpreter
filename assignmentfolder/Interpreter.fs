@@ -10,7 +10,7 @@ let rec getVariable (a:AExpr) (varList:(AExpr * (int)List) List) =
     match varList with
     | (a1,l)::tail when a1 = a -> l.[0]
     | (a1,l)::tail             -> getVariable a tail
-    | _ ->  printfn "ERROR VARIABLE DOES NOT EXIST!!!!!!!!!!!!!"
+    | _ ->  printfn "ERROR VARIABLE DOES NOT EXIST!"
             (0)
 
 let rec setArray (a:string) (index:int) (i:int) (varList:(AExpr * (int)List) List) (nl:(AExpr * (int)List) List) =
@@ -35,7 +35,7 @@ let rec getArray (a:string) (index:int) (varList:(AExpr * (int)List) List) =
                                               failwith ""
                                          else l.[index]
     | (a1,l)::tail             -> getArray a index tail
-    | _ ->  printfn "ERROR VARIABLE DOES NOT EXIST!!!!!!!!!!!!!"
+    | _ ->  printfn "ERROR VARIABLE DOES NOT EXIST!"
             failwith ""
 
 let rec pow a b =

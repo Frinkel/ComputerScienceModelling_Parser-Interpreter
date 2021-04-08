@@ -65,7 +65,6 @@ aExpression:
   | PLUS aExpression                          { UPlusExpr($2) }
   | MINUS aExpression                         { UMinusExpr($2) }
   | LPAR aExpression RPAR                     { $2 }
-  | aExpression LBRAC aExpression RBRAC       { ArrayGetValueExpr($1,$3) }
 
 
 

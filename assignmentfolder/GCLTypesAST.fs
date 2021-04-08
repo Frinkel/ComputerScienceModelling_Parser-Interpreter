@@ -12,7 +12,6 @@ type AExpr =
   | PowExpr of (AExpr * AExpr)
   | UPlusExpr of (AExpr)
   | UMinusExpr of (AExpr)
-  | ArrayGetValueExpr of (AExpr * AExpr)
 
 
 type BExpr = 
@@ -31,7 +30,6 @@ type BExpr =
 
 type Command =
   | Assign of (AExpr * AExpr)
-  | AssignArray of (AExpr * AExpr * AExpr)
   | Skip
   | SemiColon of (Command * Command)
   | If of (GuardedCommand)

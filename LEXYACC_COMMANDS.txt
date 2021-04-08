@@ -19,3 +19,7 @@ PARSER:
 ../FSLEXYACC_FILES/fslexyacc/10.0.0/build/fsyacc/net46/fsyacc.exe GCLParser.fsp --module GCLParser
 
 #r "../FSLEXYACC_FILES/fslexyacc.runtime/10.0.0/lib/net46/fslexYacc.Runtime.dll"
+
+
+Run dot program:
+dot -Tpng graph.dot -o graph.png
