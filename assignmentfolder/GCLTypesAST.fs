@@ -42,8 +42,3 @@ and GuardedCommand =
 type SubTypes =
   | SubB of BExpr
   | SubC of Command
-
-type Signs =
-  | Plus
-  | Minus
-  | Zero

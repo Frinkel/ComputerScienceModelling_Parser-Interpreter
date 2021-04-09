@@ -12,8 +12,13 @@ let rec findVariablesWithDuplicates (l:(int * SubTypes * int)List) (nl:AExpr Lis
 and findVariableFromCommand (command:Command) (nl:AExpr List) =
     match command with
     | Assign(x,y)       -> (findVariableFromAExpr x []) @ (findVariableFromAExpr y [])
-    | Skip              -> nl
-
+    | SemiColon(c1,c2)  -> (findVariableFromCommand c1 []) @ (findVariableFromCommand c2 [])
+    | If(Gc)            -> findVariableFromGc Gc []
+    | Do(Gc)            -> findVariableFromGc Gc []
+and findVariableFromGc (Gc:GuardedCommand) (nl:AExpr List) =
+    match Gc with
+    | ExecuteIf(b,c)    -> (findVariableFromBExpr b []) @ (findVariableFromCommand c [])
+    | Else(gc1,gc2)     -> (findVariableFromGc gc1 []) @ (findVariableFromGc gc2 [])
 and findVariableFromAExpr (a:AExpr) (nl:AExpr List) =
     match a with
     | Num(x)            -> nl
