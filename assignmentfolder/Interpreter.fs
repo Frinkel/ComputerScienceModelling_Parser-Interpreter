@@ -95,4 +95,3 @@ let rec interpret (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes 
     | _               -> printfn "Error! stuck at node %i " q
                          varList
 
-   
