@@ -132,16 +132,19 @@ let rec compute n =
         printfn "Interpretting the GCL program:"
         let varList = interpret edgeList edgeList initVars 0
 
+        let aExprList = findVariables edgeList
+
+
 
 
         printfn ""
         printfn "Final variable assignment:"
         printAssignmentList varList
-        // Writes the output to a doat file, that can be made into graphical representation using graphviz
+        // Writes the output to a dot file, that can be made into graphical representation using graphviz
         // Get a printable string from the edge list
         
         
-        printfn "%A" (initializeSigns edgeList (initializeSignVars varList []) [])
+        printfn "%A" (initializeSigns edgeList (initializeSignVars varList []) [] aExprList)
         
         File.WriteAllText ("assignmentfolder/graph.dot", "digraph G {\n" + edgeListString + "}")
 
