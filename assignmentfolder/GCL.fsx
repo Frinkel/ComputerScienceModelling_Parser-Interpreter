@@ -27,10 +27,6 @@ open InitializeVariables
 #load "Interpreter.fs"
 open Interpreter
 
-
-#load "SignAnalyzer.fs"
-open SignAnalyzer
-
 // We define the evaluation function recursively, by induction on the structure
 // of arithmetic expressions (AST of type expr)
 
@@ -132,16 +128,11 @@ let rec compute n =
         printfn "Interpretting the GCL program:"
         let varList = interpret edgeList edgeList initVars 0
 
-
-
         printfn ""
         printfn "Final variable assignment:"
         printAssignmentList varList
         // Writes the output to a doat file, that can be made into graphical representation using graphviz
         // Get a printable string from the edge list
-        
-        
-        printfn "%A" (initializeSigns edgeList (initializeSignVars varList []) [])
         
         File.WriteAllText ("assignmentfolder/graph.dot", "digraph G {\n" + edgeListString + "}")
 
