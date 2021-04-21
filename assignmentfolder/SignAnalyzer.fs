@@ -138,4 +138,32 @@ let rec initializeSigns (edges:(int * SubTypes * int)List) (varListSign:(AExpr*(
     | (q0,c,q1)::tail -> (initializeSigns tail varListSign nl aExprList)
     | _ -> nl@[(1,varListSign)]
 
-//@[(q0,[(Var "x", [Plus]); (Var "y", [Plus])])]
+// Removes duplicates from the sign list.
+let rec removeDuplicates (varListSign:(int*(AExpr*(Signs)List)List)List) =
+    match varListSign with 
+    | (q0,l)::tail -> [(q0,(removeDuplicatesHelper l [] 0))]@(removeDuplicates tail)
+    | _ -> []
+and removeDuplicatesHelper (l:(AExpr*(Signs)List)List) (duplicateList:((Signs)List)List) (index:int): (AExpr*(Signs)List)List =
+    match l with
+    | (x,xlist)::tail when index = xlist.Length -> l 
+    | l when (listContains (getEntries l index) duplicateList) ->   printfn "%A 1 index: %i l.length: %i" duplicateList index l.Length
+                                                                    removeDuplicatesHelper (removeEntries l index) (duplicateList) (index)
+    | l ->  printfn "%A 2 index: %i l.length: %i" duplicateList index l.Length
+            removeDuplicatesHelper l ([(getEntries l index)]@duplicateList) (index+1)
+and getEntries (signList:(AExpr*(Signs)List)List) index =
+    match signList with 
+    | ((x,xlist))::tail -> [(listGetElemFromIndex xlist index)]@(getEntries tail index)
+    | _ -> []
+and removeEntries (signList:(AExpr*(Signs)List)List) index =
+    match signList with
+    | ((x,xlist))::tail -> [(x, (listRemoveElemByIndex xlist index 0))]@(removeEntries tail index)
+    | _ -> []
+and listContains (elem:(Signs)List) (l:((Signs)List)List) = List.exists (fun x -> x = elem) l
+and listGetElemFromIndex l index = Seq.item index (Seq.ofList l)
+and listRemoveElemByIndex l index incr =
+    match l with 
+    | x::xtail when index = incr -> xtail
+    | x::xtail -> [x]@(listRemoveElemByIndex xtail index (incr+1))
+    | _ -> []
+
+
