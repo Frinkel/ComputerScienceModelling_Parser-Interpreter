@@ -72,13 +72,18 @@ and getArrayInitializationFromUser (x:string) =
 //     | UMinusExpr(x)     -> - (aval x varList)
 //     | _ -> 0
 
-// let rec avalSign (c:Command) (varList:(int*(AExpr*(Signs)List)List)List) =
-//     match c with
-//     | Assign(var, x) -> match var with
-//                         | Var(v)       -> setVariable var (aval x varList) varList []
-//                         | Array(v1,v2) -> setArray v1 (aval v2 varList) (aval x varList) varList []
+let rec cvalSign (c:Command) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (length:int) =
+    match length with
+    | 0 -> printfn "Was in cvalSign between %i and %i" q0 q1
+           varListSign
+    | _ -> printfn "hey"
+           (cvalSign c varListSign q0 q1 (length - 1))
 
-// let rec avalSign b (varList:(int*(AExpr*(Signs)List)List)List) =
+    // | Assign(var, x) -> match var with
+    //                     | Var(v)       -> setVariable var (aval x varList) varList []
+    //                     | Array(v1,v2) -> setArray v1 (aval v2 varList) (aval x varList) varList []
+
+// let rec bvalSign b (varList:(int*(AExpr*(Signs)List)List)List) =
 //     match b with
 //     | Bool(x)                   -> x
 //     | AndExpr(x,y)              -> (bval x varList) & (bval y varList)
@@ -93,19 +98,27 @@ and getArrayInitializationFromUser (x:string) =
 //     | GreaterOrEqualExpr(x,y)   -> (aval x varList) >= (aval y varList)
 //     | LessOrEqualExpr(x,y)      -> (aval x varList) <= (aval y varList)
 
-// let rec signAnalysis (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) =
-//     match edgestail with
-//     | (q0,c,q1)::tail  when q = q0 -> match (c) with 
-//                                     | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
-//                                                                       signAnalysis edges edges (cvalSign x varListSign) q1
-//                                     | SubB(x) when (bvalSign x varListSign)-> printfn "Took path %i to %i" q0 q1
-//                                                                       signAnalysis edges edges varList q1
-//                                     | _                            -> signAnalysis edges tail varList q
-//     | (q0,e,q1)::tail -> signAnalysis edges tail varList q
-//     | _ when q = 1    -> printfn "Succes finished at node %i " q
-//                          varList
-//     | _               -> printfn "Error! stuck at node %i " q
-//                          varList
+let rec getSignListLength (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) =
+    match varListSign with
+    | (q0,l)::tail when q0 = q -> match l with
+                                  | (x,l1)::tail -> l1.Length
+                                  | _ -> 0
+    | (q0,l)::tail -> getSignListLength tail q
+    | _ -> 0
+
+let rec signAnalysis (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) =
+    match edgestail with
+    | (q0,c,q1)::tail  when q = q0 -> match (c) with 
+                                    | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
+                                                                      signAnalysis edges edges (cvalSign x varListSign q0 q1 (getSignListLength varListSign q0) ) q1
+    //                                 | SubB(x) when (bvalSign x varListSign)-> printfn "Took path %i to %i" q0 q1
+    //                                                                           signAnalysis edges edges varList q1
+    //                                 | _                            -> signAnalysis edges tail varList q
+    | (q0,e,q1)::tail -> signAnalysis edges tail varListSign q
+    // | _ when q = 1    -> printfn "Succes finished at node %i " q
+    //                      varListSign
+    | _               -> printfn "Error! stuck at node %i " q
+                         varListSign
 
 let rec containsNode (l:(int*(AExpr*(Signs)List)List)List) (q:int)=
     match l with

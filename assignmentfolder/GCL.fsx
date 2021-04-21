@@ -143,9 +143,11 @@ let rec compute n =
         // Writes the output to a dot file, that can be made into graphical representation using graphviz
         // Get a printable string from the edge list
         
+        let varListSign =  (initializeSigns edgeList (initializeSignVars varList []) [] aExprList)
+        printfn "%A" varListSign
         
-        printfn "%A" (initializeSigns edgeList (initializeSignVars varList []) [] aExprList)
-        
+        let varListSign = signAnalysis edgeList edgeList varListSign 0
+
         File.WriteAllText ("assignmentfolder/graph.dot", "digraph G {\n" + edgeListString + "}")
 
         compute n
