@@ -1,4 +1,3 @@
 digraph G {
-0 -> 2 [label = "a:=2"];
-2 -> 1 [label = "b:=2"];
+0 -> 1 [label = "a:=b + c"];
 }

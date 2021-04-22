@@ -1,3 +1,3 @@
 ***WIP (Work In Progress)***
 
-GCLParser and GCLLexer and interpreter implemented.
+Sign Analyzer is not working for all cases yet, some sign evaluation have not been implemented yet

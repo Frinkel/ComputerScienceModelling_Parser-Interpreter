@@ -52,33 +52,6 @@ and getArrayInitializationFromUser (x:string) =
     printf "%s =" x
     [Array(x,Num(1)), arrayStringToSignList(Console.ReadLine())]
 
-
-
-
-
-
-
-// let rec avalSign (a:AExpr) (varList:(int*(AExpr*(Signs)List)List)List) =
-//     match a with
-//     | Num(x)            -> x
-//     | Array(var,x)      -> (getArray var (aval x varList) varList)
-//     | Var(x)            -> (getVariable a varList)
-//     | TimesExpr(x,y)    -> (aval x varList) * (aval y varList)
-//     | DivExpr(x,y)      -> (aval x varList) / (aval y varList)
-//     | PlusExpr(x,y)     -> (aval x varList) + (aval y varList)
-//     | MinusExpr(x,y)    -> (aval x varList) - (aval y varList)
-//     | PowExpr(x,y)      -> (pow (aval x varList) (aval y varList))
-//     | UPlusExpr(x)      -> (aval x varList)
-//     | UMinusExpr(x)     -> - (aval x varList)
-//     | _ -> 0
-
-let rec cvalSign (c:Command) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (length:int) =
-    match length with
-    | 0 -> printfn "Was in cvalSign between %i and %i" q0 q1
-           varListSign
-    | _ -> printfn "hey"
-           (cvalSign c varListSign q0 q1 (length - 1))
-
     // | Assign(var, x) -> match var with
     //                     | Var(v)       -> setVariable var (aval x varList) varList []
     //                     | Array(v1,v2) -> setArray v1 (aval v2 varList) (aval x varList) varList []
@@ -106,19 +79,66 @@ let rec getSignListLength (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int
     | (q0,l)::tail -> getSignListLength tail q
     | _ -> 0
 
-let rec signAnalysis (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) =
-    match edgestail with
-    | (q0,c,q1)::tail  when q = q0 -> match (c) with 
-                                    | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
-                                                                      signAnalysis edges edges (cvalSign x varListSign q0 q1 (getSignListLength varListSign q0) ) q1
-    //                                 | SubB(x) when (bvalSign x varListSign)-> printfn "Took path %i to %i" q0 q1
-    //                                                                           signAnalysis edges edges varList q1
-    //                                 | _                            -> signAnalysis edges tail varList q
-    | (q0,e,q1)::tail -> signAnalysis edges tail varListSign q
-    // | _ when q = 1    -> printfn "Succes finished at node %i " q
-    //                      varListSign
-    | _               -> printfn "Error! stuck at node %i " q
-                         varListSign
+let rec duplicateSign (sign:Signs) (i:int) nl=
+    match i with
+    | 0 -> nl
+    | _ -> duplicateSign sign (i-1) (sign::nl)
+
+let rec getSignsFromList (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) (var:AExpr) =
+    match varListSign with
+    | (q0,l)::tail when q0 = q -> getSignsFromNode l var
+    | (q0,l)::tail -> getSignsFromList tail q var
+    | _ -> []
+    
+and getSignsFromNode (node:(AExpr*(Signs)List)List) (var:AExpr) =
+    match node with
+    | (x,l)::tail when x = var -> l
+    | (x,l)::tail -> getSignsFromNode tail var
+    | _ -> []
+
+let rec updateSigns (varListSign:(int*(AExpr*(Signs)List)List)List) (node:(AExpr*(Signs)List)List) (q0:int) (q1:int) (var:AExpr) (sign:Signs) (nl:(AExpr*(Signs)List)List) =
+    match node with
+    | (x,l)::tail when x = var -> updateSigns varListSign tail q0 q1 var sign [(x,(duplicateSign sign ((getSignListLength varListSign q0)) [])@l)]@nl
+    | (x,l)::tail -> updateSigns varListSign tail q0 q1 var sign [(x,(getSignsFromList varListSign q0 x)@l)]@nl
+    | _ -> nl
+
+//(getSignsFromList varListSign q0 x)
+let rec updateNode (varListSign:(int*(AExpr*(Signs)List)List)List) (varListSign2:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (var:AExpr) (sign:Signs) (nl:(int*(AExpr*(Signs)List)List)List)=
+    match varListSign with
+    | (q,l)::tail when q = q1 -> updateNode tail varListSign2 q0 q1 var sign [q,(updateSigns varListSign2 l q0 q1 var sign [])]@nl
+    | (q,l)::tail -> updateNode tail varListSign2 q0 q1 var sign [(q,l)]@nl
+    | _ -> nl
+
+let rec avalSign (a:AExpr) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (nl:Signs List)=
+    match a with
+      | Num(x)            -> if x > 0 then [Plus]@nl else if x = 0 then [Zero]@nl else [Minus]@nl
+//      | Array(var,x)      -> (getArray var (aval x varList) varList)
+      | Var(x)            -> (getSignsFromList varListSign q0 a)
+//      | TimesExpr(x,y)    -> (aval x varList) * (aval y varList)
+//      | DivExpr(x,y)      -> (aval x varList) / (aval y varList)
+      | PlusExpr(x,y)     -> (avalSign x varListSign q0 q1 nl)@(avalSign y varListSign q0 q1 nl)
+//      | MinusExpr(x,y)    -> (aval x varList) - (aval y varList)
+//      | PowExpr(x,y)      -> (pow (aval x varList) (aval y varList))
+//      | UPlusExpr(x)      -> (aval x varList)
+//      | UMinusExpr(x)     -> - (aval x varList)
+//      | _ -> 0
+
+let rec executeUpdateSign (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (var:AExpr) (signList:Signs List) =
+    match signList with
+    | s::tail -> executeUpdateSign (updateNode varListSign varListSign q0 q1 var s []) q0 q1 var tail
+    | _ -> varListSign
+
+let rec cvalSign (c:Command) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) =
+    match c with
+    | Assign(var, x) -> match var with
+                        | Var(v)       -> executeUpdateSign varListSign q0 q1 var (avalSign x varListSign q0 q1 [])
+//                        | Array(v1,v2) -> setArray v1 (aval v2 varList) (aval x varList) varList []
+
+
+
+
+
+
 
 let rec containsNode (l:(int*(AExpr*(Signs)List)List)List) (q:int)=
     match l with
@@ -167,3 +187,23 @@ and listRemoveElemByIndex l index incr =
     | _ -> []
 
 
+let rec evalSign (c:Command) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (length:int) = 
+    match length with
+    | 0 -> printfn "Was in cvalSign between %i and %i" q0 q1
+           varListSign
+    | _ -> printfn "hey"
+           (evalSign c (cvalSign c varListSign q0 q1) q0 q1 (length - 1))
+
+let rec signAnalysis (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) =
+    match edgestail with
+    | (q0,c,q1)::tail  when q = q0 -> match (c) with 
+                                      | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
+                                                                        signAnalysis edges edges (removeDuplicates (evalSign x varListSign q0 q1 (getSignListLength varListSign q0) )) q1
+    //                                 | SubB(x) when (bvalSign x varListSign)-> printfn "Took path %i to %i" q0 q1
+    //                                                                           signAnalysis edges edges varList q1
+    //                                 | _                            -> signAnalysis edges tail varList q
+    | (q0,e,q1)::tail -> signAnalysis edges tail varListSign q
+    // | _ when q = 1    -> printfn "Succes finished at node %i " q
+    //                      varListSign
+    | _               -> printfn "Error! stuck at node %i " q
+                         (removeDuplicates varListSign)

@@ -145,8 +145,13 @@ let rec compute n =
         
         let varListSign =  (initializeSigns edgeList (initializeSignVars varList []) [] aExprList)
         printfn "%A" varListSign
-        
+
+        // let varListSign2 = updateNode varListSign varListSign 0 1 (Var("a")) Zero []
+        // printfn "2 %A" varListSign2
+
         let varListSign = signAnalysis edgeList edgeList varListSign 0
+        printfn " "
+        printfn "%A" varListSign
 
         File.WriteAllText ("assignmentfolder/graph.dot", "digraph G {\n" + edgeListString + "}")
 
