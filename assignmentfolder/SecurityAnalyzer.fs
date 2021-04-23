@@ -2,10 +2,6 @@ module SecurityAnalyzer
 
 open System.Text.RegularExpressions
 
-module SecurityAnalyzer
-
-open System.Text.RegularExpressions
-
 // From: https://stackoverflow.com/questions/53818476/f-match-many-regex
 let (|Regex|_|) pattern input =
     let m = Regex.Match(input, pattern)
@@ -58,7 +54,7 @@ and getVariableInitializationFromUser (x:string) =
     (Var(x), securityVarChecker(Console.ReadLine()))
 and getArrayInitializationFromUser (x:string) =
     printf "%s = " x
-    (Array(x,Num(1)), Var "a")
+    (Array(x,Num(1)), securityVarChecker(Console.ReadLine()))
 
 
 // [(Private, Public)]
@@ -67,12 +63,9 @@ and getArrayInitializationFromUser (x:string) =
 
 let rec produceAllowedFlowList (secLattice: (AExpr * AExpr)List) (secClassification: (AExpr * AExpr)List) (secClassificationTail: (AExpr * AExpr)List) (allowedFlowList: (AExpr * AExpr)List) = 
     match secClassificationTail with 
-    | (x,y)::tail when (checkSecurityLattice y secLattice) -> printfn  "Here 1 %A " allowedFlowList
-                                                              produceAllowedFlowList secLattice secClassification tail (addToList x ([x]@(getVariableFromSecClassification ([y]@(getCorrespondingSecurity y secLattice [])) secClassification [])) allowedFlowList) 
-    | (x,y)::tail ->    printfn "Here 2 %A " allowedFlowList
-                        produceAllowedFlowList secLattice secClassification tail (addToList x ([x]) allowedFlowList)
-    | _ ->  printfn "Here 3 %A " allowedFlowList
-            removeDuplicates allowedFlowList []
+    | (x,y)::tail when (checkSecurityLattice y secLattice) -> produceAllowedFlowList secLattice secClassification tail (addToList x ([x]@(getVariableFromSecClassification ([y]@(getCorrespondingSecurity y secLattice [])) secClassification [])) allowedFlowList) 
+    | (x,y)::tail ->    produceAllowedFlowList secLattice secClassification tail (addToList x ([x]) allowedFlowList)
+    | _ ->  removeDuplicates allowedFlowList []
 and listContains elem l = List.exists (fun x -> x = elem) l
 and getVariableFromSecClassification (secList: AExpr List) (secClassification: (AExpr * AExpr)List) (returnList: AExpr List) =
     match secClassification with

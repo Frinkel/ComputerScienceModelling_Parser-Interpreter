@@ -124,8 +124,11 @@ let rec compute n =
         //printfn "%A" varList
 
         // Security analysis
-        //let initSecurityVars = InitializationOfSecurity varList []
-        //printfn "Security lattice list: %A" initSecurityVars
+        let initSecurityVars = InitializationOfSecurity varList []
+        printfn "Security lattice list: %A" initSecurityVars
+        let test = produceAllowedFlowList [(Var("public"),Var("private"))] initSecurityVars initSecurityVars []
+
+        printfn "%A" test
 
         // Initialization of Variables and Arrays
         printfn "Initialization of Variables and Arrays:"
