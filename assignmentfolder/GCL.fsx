@@ -31,6 +31,9 @@ open Interpreter
 #load "SignAnalyzer.fs"
 open SignAnalyzer
 
+#load "SecurityAnalyzer.fs"
+open SecurityAnalyzer
+
 // We define the evaluation function recursively, by induction on the structure
 // of arithmetic expressions (AST of type expr)
 
