@@ -2,55 +2,68 @@ module SecurityAnalyzer
 
 open System.Text.RegularExpressions
 
+module SecurityAnalyzer
+
+open System.Text.RegularExpressions
+
 // From: https://stackoverflow.com/questions/53818476/f-match-many-regex
 let (|Regex|_|) pattern input =
     let m = Regex.Match(input, pattern)
     if m.Success then Some(List.tail [ for g in m.Groups -> g.Value ])
     else None
 
-// Check if a string is a sign type
-let signChecker s =
+
+let securityVarChecker (s:string) =
     match s with
-    | Regex @"(^\+)" [ chr ]    -> Plus
-    | Regex @"(^\-)" [ chr ]    -> Minus
-    | Regex @"(^0)"  [ chr ]    -> Zero
-    | _                         -> printfn "Not a valid sign initialization"
-                                   failwith "Not a valid sign initialization"
+    | Regex @"^([a-zA-Z]+)((?!.*\s.*).+)?$" [ grp1;grp2 ] -> Var(grp1+grp2)
+    | _ ->  printfn "ERROR: Security variable failed to hold correct syntax of no spaces and no leading integers."
+            failwith "ERROR: Security variable failed to hold correct syntax of no spaces and no leading integers."
+;;
 
-// Check if a sign array is on the correct form
-let signArrayChecker (a:string) =
-    match a with
-    | Regex @"^\{((\s*[\+ \- 0]+\s*,?\s*)+\s*[\+ \- 0]*\s*)\}" [ num; d ] ->
-        num
-    | _ ->  printfn "ERROR: Array failed to hold correct syntax of \"{Sign 1, Sign 2, ..., Sign N}\""
-            failwith "Array failed to hold correct syntax of \"{Sign 1, Sign 2, ..., Sign N}\""
+let securityLatticeChecker (s:string) =
+    match s with
+    | Regex @"(^(([a-zA-Z]+([a-zA-Z0-9]+)?)[<]([a-zA-Z]+([a-zA-Z0-9]+)?)[,]?)+$)" [ grp1;grp2;grp3;grp4;grp5;grp6 ] -> grp1
+    | _ ->  printfn "ERROR: Security variable failed to hold correct syntax of \"Security1<Security2,...SecurityN<SecurityN+1\""
+            failwith "ERROR: Security variable failed to hold correct syntax of \"Security1<Security2,...SecurityN<SecurityN+1\""
+;;
 
-// Convert a string list to a signs list
-let arrayStringToSignList (s:string) =
-    let sA = Seq.toList (signArrayChecker s)
-    let rec arrayStringToListS (l:char List) (nl:Signs List) =
+let securityLatticeInitializer (s:string) =
+    let b = Seq.toList s
+    let rec securityLatticeStringToList (s:char List) (ns:string) (nl:string List) =
+        match s with
+        | [] -> nl
+        | x::[]  -> securityLatticeStringToList [] "" (nl@[ns+(string x)])
+        | x::tail when x = ',' -> securityLatticeStringToList tail "" (nl@[ns])
+        | x::tail when x = '<' -> securityLatticeStringToList tail "" (nl@[ns])
+        | x::tail -> securityLatticeStringToList tail (ns+(string x)) (nl)
+    
+    let rec securityLatticeListToTupleList (l:string List) (nl:(AExpr * AExpr) List) =
         match l with
         | [] -> nl
-        | (x:char)::[] -> arrayStringToListS [] (nl@[signChecker (string x)])
-        | (x:char)::tail when x = ',' -> arrayStringToListS tail (nl)
-        | (x:char)::tail -> arrayStringToListS tail (nl@[signChecker (string x)])
+        | x::y::tail -> securityLatticeListToTupleList tail (nl@[(Var(x),Var(y))])
 
-    arrayStringToListS sA []
+    securityLatticeListToTupleList (securityLatticeStringToList b "" []) []
 
+securityLatticeInitializer "public<private,x<a";;
 
-let rec InitializationOfSigns (l: AExpr List) (nl:(AExpr * (Signs)List) List) = 
+// Read console from the user
+let rec InitializationOfSecurity (l: AExpr List) (nl:(AExpr * AExpr) List) = 
     match l with
     | [] -> nl
     | a::tail -> match a with
-                 | Var(x)       -> InitializationOfSigns tail (nl@getVariableInitializationFromUser x)
-                 | Array(x,y)   -> InitializationOfSigns tail (nl@getArrayInitializationFromUser x)
+                 | Var(x)       -> InitializationOfSecurity tail (nl@[getVariableInitializationFromUser x])
+                 | Array(x,y)   -> InitializationOfSecurity tail (nl@[getArrayInitializationFromUser x])
 and getVariableInitializationFromUser (x:string) =
-    printf "%s =" x
-    [Var(x), [signChecker(Console.ReadLine())]]
+    printf "%s = " x
+    (Var(x), securityVarChecker(Console.ReadLine()))
 and getArrayInitializationFromUser (x:string) =
-    printfn "Enter all ellements of your array with the syntax \"{Sign 1, Sign 2, ..., Sign N}\""
-    printf "%s =" x
-    [Array(x,Num(1)), arrayStringToSignList(Console.ReadLine())]
+    printf "%s = " x
+    (Array(x,Num(1)), Var "a")
+
+
+// [(Private, Public)]
+// [(i, Public); (x, Public)]
+// (^[a-z A-Z]+[a-zA-Z0-9]+?$)
 
 let rec produceAllowedFlowList (secLattice: (AExpr * AExpr)List) (secClassification: (AExpr * AExpr)List) (secClassificationTail: (AExpr * AExpr)List) (allowedFlowList: (AExpr * AExpr)List) = 
     match secClassificationTail with 
