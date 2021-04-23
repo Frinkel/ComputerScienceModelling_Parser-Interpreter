@@ -27,7 +27,6 @@ open InitializeVariables
 #load "Interpreter.fs"
 open Interpreter
 
-
 #load "SignAnalyzer.fs"
 open SignAnalyzer
 
@@ -124,12 +123,16 @@ let rec compute n =
         let varList = findVariables edgeList
         //printfn "%A" varList
 
+        // Security analysis
+        //let initSecurityVars = InitializationOfSecurity varList []
+        //printfn "Security lattice list: %A" initSecurityVars
 
         // Initialization of Variables and Arrays
         printfn "Initialization of Variables and Arrays:"
         let initVars = InitializationOfVariablesAndArrays varList []
         //printfn "Initialization done:\n%A\n" initVars
         
+
         // Interpret the program
         printfn ""
         printfn "Interpretting the GCL program:"
