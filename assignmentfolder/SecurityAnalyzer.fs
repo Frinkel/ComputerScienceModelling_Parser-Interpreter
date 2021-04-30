@@ -100,19 +100,79 @@ and removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowed
     | x::tail -> removeDuplicates tail ([x]@accumulatingAllowedFlowList)
     | _ -> accumulatingAllowedFlowList
 
-let produceActualFlows (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varList:(AExpr * (int)List) List) (actualFlowsList: (AExpr * AExpr)List) (q:int) =
-    match edgestail with
-    | (q0,c,q1)::tail  when q = q0 -> match (c) with 
-                                    | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
-                                                                      produceActualFlows edges edges (cval x varList) actualFlowsList q1
-                                    | SubB(x) when (bval x varList)-> printfn "Took path %i to %i" q0 q1
-                                                                      produceActualFlows edges edges varList actualFlowsList q1
-                                    | _                            -> produceActualFlows edges tail varList actualFlowsList q
-    | (q0,e,q1)::tail -> produceActualFlows edges tail varList actualFlowsList q
-    | _ when q = 1    -> printfn "Succes finished at node %i " q
-                         actualFlowsList
-    | _               -> printfn "Error! stuck at node %i " q
-                         actualFlowsList
+
+
+// let rec produceActualFlows2 (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varList:(AExpr * (int)List) List) (actualFlowsList: (AExpr * AExpr)List) (q:int) =
+//     match edgestail with
+//     | (q0,c,q1)::tail  when q = q0 -> match (c) with 
+//                                     | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
+//                                                                       produceActualFlows edges edges (cval x varList) actualFlowsList q1
+//                                     | SubB(x) when (bval x varList)-> printfn "Took path %i to %i" q0 q1
+//                                                                       produceActualFlows edges edges varList actualFlowsList q1
+//                                     | _                            -> produceActualFlows edges tail varList actualFlowsList q
+//     | (q0,e,q1)::tail -> produceActualFlows edges tail varList actualFlowsList q
+//     | _ when q = 1    -> printfn "Succes finished at node %i " q
+//                          actualFlowsList
+//     | _               -> printfn "Error! stuck at node %i " q
+//                          actualFlowsList
+
+
+let rec produceActualFlows (edges:(int * SubTypes * int)List) (actualFlow:(AExpr * AExpr)List) (q:int) =
+    match edges with
+    | [] -> actualFlow
+    | (q0, c, q1)::tail  when q = q0 -> match (c) with 
+                                        | SubC(x) -> produceActualFlows tail (addFlowSubC actualFlow x) q1
+                                        | SubB(x) -> produceActualFlows tail (addFlowSubB actualFlow x tail q1) q1
+and addFlowSubC actualFlow x =
+    match x with
+    | Assign(a, b) -> match (a, b) with
+                      | (Var(c), Var(d)) -> actualFlow@[(b,a)]
+                      | (Var(c), _) -> actualFlow
+and addFlowSubB actualFlow a tail q1 =
+    match a with
+    | Bool(x)                   -> actualFlow
+    | AndExpr(x,y)              -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
+    | NotExpr(x)                -> actualFlow
+    | OrExpr(x,y)               -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
+    | ShortOrExpr(x,y)          -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
+    | ShortAndExpr(x,y)         -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
+    | EqualsExpr(x,y)           -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
+    | NotEqualsExpr(x,y)        -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
+    | GreaterExpr(x,y)          -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
+    | LessExpr(x,y)             -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
+    | GreaterOrEqualExpr(x,y)   -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
+    | LessOrEqualExpr(x,y)      -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
+and addVarsFromBExprToActualFlow actualFlow (x,y) tail q1 = match (x,y) with
+    | (Var(c), Var(d)) -> match tail with
+                            | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
+                                                                | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
+                                                                | SubC(z) -> match z with
+                                                                             | Assign(g, f) -> actualFlow@[(x, g); (y, g)]
+    | (Var(c), _) -> match tail with
+                            | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
+                                                                | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
+                                                                | SubC(z) -> match z with
+                                                                             | Assign(g, f) -> actualFlow@[(x, g)]
+    | (_ , Var(c)) -> match tail with
+                            | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
+                                                                | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
+                                                                | SubC(z) -> match z with
+                                                                             | Assign(g, f) -> actualFlow@[(y, g)]
+    | _ -> actualFlow
+
+;;
+
+
+produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0;; // NOT COVERED
+
+
+//[(0, SubC (Assign (Var "a", Var "b")), 1)]
+// [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1); (0, SubB (GreaterExpr (Var "a", Num 1)), 4); (4, SubC (Assign (Var "b", Num 2)), 1)]
+
+
+
+
+//produceActualFlows prog prog [Var "b"; Var "a"; Var "c"] [] 0;;
 
 
 // let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
