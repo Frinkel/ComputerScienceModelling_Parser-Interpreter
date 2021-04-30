@@ -2,6 +2,14 @@ module SecurityAnalyzer
 
 open System.Text.RegularExpressions
 
+// PRETTY PRINTER FOR SECURITY ANALYSIS
+let rec prettySecurityPrint flowList = 
+    match flowList with
+    | (Var(x),Var(y))::[]   -> printfn "%s -> %s" (x:string) (y:string)
+    | (Var(x),Var(y))::tail -> printf "%s -> %s, " (x:string) (y:string)
+                               prettySecurityPrint tail;;
+
+
 // From: https://stackoverflow.com/questions/53818476/f-match-many-regex
 let (|Regex|_|) pattern input =
     let m = Regex.Match(input, pattern)
@@ -40,7 +48,7 @@ let securityLatticeInitializer (s:string) =
 
     securityLatticeListToTupleList (securityLatticeStringToList b "" []) []
 
-securityLatticeInitializer "public<private,x<a";;
+// securityLatticeInitializer "public<private,x<a";;
 
 // Read console from the user
 let rec InitializationOfSecurity (l: AExpr List) (nl:(AExpr * AExpr) List) = 
@@ -92,7 +100,7 @@ and removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowed
     | x::tail -> removeDuplicates tail ([x]@accumulatingAllowedFlowList)
     | _ -> accumulatingAllowedFlowList
 
-let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
-let (secClassTest: (AExpr * AExpr)List) = [(Var("x"), Var("Public")); (Var("y"), Var("Private"))]
+// let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
+// let (secClassTest: (AExpr * AExpr)List) = [(Var("x"), Var("Public")); (Var("y"), Var("Private"))]
 
-produceAllowedFlowList secLatTest secClassTest secClassTest []
+// produceAllowedFlowList secLatTest secClassTest secClassTest []

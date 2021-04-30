@@ -3,6 +3,7 @@
 // For writing to file
 open System
 open System.IO
+open System.Text.RegularExpressions
 
 // We need to import a couple of modules, including the generated lexer and parser
 #r "../FSLEXYACC_FILES/fslexyacc.runtime/10.2.0/lib/netstandard2.0/FsLexYacc.Runtime.dll"
@@ -80,7 +81,27 @@ and edgesDo q0 Gc q1 n (l:(int * SubTypes * int)List) =
 
 let toDFA (e:(int * SubTypes * int)List) (D:Boolean) =
     if D = true then convertNFAToDFA e [] [] else e
-    
+
+
+// Determine analysis variation
+// From: https://stackoverflow.com/questions/53818476/f-match-many-regex
+let (|Regex|_|) pattern input =
+    let m = Regex.Match(input, pattern)
+    if m.Success then Some(List.tail [ for g in m.Groups -> g.Value ])
+    else None
+
+let analysisType c = 
+    match c with
+    | Regex @"(^step)" [ chr ] -> printfn "Step-wise execution chosen."
+                                  0
+    | Regex @"(^sig)" [ chr ] ->  printfn "Sign analyzer chosen."
+                                  1
+    | Regex @"(^sec)" [ chr ] ->  printfn "Security analyzer chosen."
+                                  2
+    | _                     ->    printfn "Error: Please write either \'step\', \'sig\' or \'sec\'."
+                                  failwith "Neither chosen"
+
+
 // We
 let parse input =
     // translate string into a buffer of characters
@@ -97,20 +118,28 @@ let rec compute n =
     if n = 0 then
         printfn "Bye bye"
     else
+        try
+        printfn("Choose your environment, \'step\' for step-wise, \'sig\' for sign analyzer or \'sec\' security analyzer.")
+        let environment = analysisType(Console.ReadLine())
+
+        // We parse the input string
         printfn ""
         printf "Enter your GCL program: "
-        try
-        // We parse the input string
         let e = parse (Console.ReadLine())
 
         // Get a list of all edges
         let edgeList = edges 0 e 1 1 []
         let edgeList = concatBExpr edgeList []
+        
 
-        printfn ""
-        printf "Write \'d\' for DFA or \'n\' for NFA: "
-        let DFA = dfaOrnfa (Console.ReadLine())
-        let edgeList = toDFA edgeList DFA // Converts to DFA
+        // ***********
+        if environment <> 2 then
+            printfn ""
+            printf "Write \'d\' for DFA or \'n\' for NFA: "
+            let DFA = dfaOrnfa (Console.ReadLine())
+            let edgeList = toDFA edgeList DFA // Converts to DFA
+            printfn "reached"
+        
 
         printfn ""
         // Print the program graph (textual)
@@ -123,44 +152,57 @@ let rec compute n =
         let varList = findVariables edgeList
         //printfn "%A" varList
 
-        // Security analysis
-        let initSecurityVars = InitializationOfSecurity varList []
-        printfn "Security lattice list: %A" initSecurityVars
-        let test = produceAllowedFlowList [(Var("public"),Var("private"))] initSecurityVars initSecurityVars []
+        if environment = 2 then // Security analysis
+            
+            printfn "Specify security lattice."
+            let lattice = Console.ReadLine()
 
-        printfn "%A" test
+            printfn ""
+            printfn "Specify security classifications:"
+            let initSecurityVars = InitializationOfSecurity varList []
 
-        // Initialization of Variables and Arrays
-        printfn "Initialization of Variables and Arrays:"
-        let initVars = InitializationOfVariablesAndArrays varList []
-        //printfn "Initialization done:\n%A\n" initVars
+            printfn ""
+            printf "Allowed flow: "
+            let allowedFlow = produceAllowedFlowList (securityLatticeInitializer lattice) initSecurityVars initSecurityVars []
+            prettySecurityPrint allowedFlow
+            printfn ""
+
+            
+
+        elif environment = 0 then // Step-wise execution
+
+            // Initialization of Variables and Arrays
+            printfn "Initialization of Variables and Arrays:"
+            let initVars = InitializationOfVariablesAndArrays varList []
+            //printfn "Initialization done:\n%A\n" initVars
+
+            // Interpret the program
+            printfn ""
+            printfn "Interpretting the GCL program:"
+            let varList = interpret edgeList edgeList initVars 0
+            printfn ""
+            printfn "Final variable assignment:"
+            printAssignmentList varList
+           
+        // if environment = 1 then
+        //     let aExprList = findVariables edgeList
+        //     let varListSign =  (initializeSigns edgeList (initializeSignVars varList []) [] aExprList)
+        //     printfn "%A" varListSign
+
+        //     // let varListSign2 = updateNode varListSign varListSign 0 1 (Var("a")) Zero []
+        //     // printfn "2 %A" varListSign2
+
+        //     let varListSign = signAnalysis edgeList edgeList varListSign 0
+        //     printfn " "
+        //     printfn "%A" varListSign
         
 
-        // Interpret the program
-        printfn ""
-        printfn "Interpretting the GCL program:"
-        let varList = interpret edgeList edgeList initVars 0
-
-        let aExprList = findVariables edgeList
 
 
 
-
-        printfn ""
-        printfn "Final variable assignment:"
-        printAssignmentList varList
+        
         // Writes the output to a dot file, that can be made into graphical representation using graphviz
         // Get a printable string from the edge list
-        
-        let varListSign =  (initializeSigns edgeList (initializeSignVars varList []) [] aExprList)
-        printfn "%A" varListSign
-
-        // let varListSign2 = updateNode varListSign varListSign 0 1 (Var("a")) Zero []
-        // printfn "2 %A" varListSign2
-
-        let varListSign = signAnalysis edgeList edgeList varListSign 0
-        printfn " "
-        printfn "%A" varListSign
 
         File.WriteAllText ("assignmentfolder/graph.dot", "digraph G {\n" + edgeListString + "}")
 
@@ -169,3 +211,4 @@ let rec compute n =
 
 // Start interacting with the user
 compute 3
+
