@@ -100,6 +100,21 @@ and removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowed
     | x::tail -> removeDuplicates tail ([x]@accumulatingAllowedFlowList)
     | _ -> accumulatingAllowedFlowList
 
+let produceActualFlows (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varList:(AExpr * (int)List) List) (actualFlowsList: (AExpr * AExpr)List) (q:int) =
+    match edgestail with
+    | (q0,c,q1)::tail  when q = q0 -> match (c) with 
+                                    | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
+                                                                      produceActualFlows edges edges (cval x varList) actualFlowsList q1
+                                    | SubB(x) when (bval x varList)-> printfn "Took path %i to %i" q0 q1
+                                                                      produceActualFlows edges edges varList actualFlowsList q1
+                                    | _                            -> produceActualFlows edges tail varList actualFlowsList q
+    | (q0,e,q1)::tail -> produceActualFlows edges tail varList actualFlowsList q
+    | _ when q = 1    -> printfn "Succes finished at node %i " q
+                         actualFlowsList
+    | _               -> printfn "Error! stuck at node %i " q
+                         actualFlowsList
+
+
 // let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
 // let (secClassTest: (AExpr * AExpr)List) = [(Var("x"), Var("Public")); (Var("y"), Var("Private"))]
 
