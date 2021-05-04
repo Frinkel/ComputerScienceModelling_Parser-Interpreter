@@ -120,6 +120,8 @@ and removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowed
 let rec produceActualFlows (edges:(int * SubTypes * int)List) (actualFlow:(AExpr * AExpr)List) (q:int) =
     match edges with
     | [] -> actualFlow
+    | (q0, c, q1)::tail  when q0 = 0 && q1 = 1 ->   printfn "OK"
+                                                    produceActualFlows tail actualFlow q
     | (q0, c, q1)::tail  when q = q0 -> match (c) with 
                                         | SubC(x) -> produceActualFlows tail (addFlowSubC actualFlow x) q1
                                         | SubB(x) -> produceActualFlows tail (addFlowSubB actualFlow x tail q1) q1
@@ -133,7 +135,7 @@ and addFlowSubB actualFlow a tail q1 =
     match a with
     | Bool(x)                   -> actualFlow
     | AndExpr(x,y)              -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
-    | NotExpr(x)                -> actualFlow
+    | NotExpr(x)                -> addFlowSubB actualFlow x tail q1
     | OrExpr(x,y)               -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
     | ShortOrExpr(x,y)          -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
     | ShortAndExpr(x,y)         -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
@@ -145,33 +147,43 @@ and addFlowSubB actualFlow a tail q1 =
     | LessOrEqualExpr(x,y)      -> addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1
 and addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1 = match (x,y) with
     | (Var(c), Var(d)) -> match tail with
+                            | [] -> actualFlow
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
-                                                                | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
+                                                                | SubB(z) -> (produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)@(addFlowSubB actualFlow z tail2 nq1)
                                                                 | SubC(z) -> match z with
-                                                                             | Assign(g, f) -> actualFlow@[(x, g); (y, g)]
+                                                                             | Assign(g, f) -> actualFlow@[(x, g); (y, g)]@(produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)
+                            | (nq0, c1, nq1)::tail2 -> failwith "d1"
+                            
     | (Var(c), _) -> match tail with
+                            | [] -> actualFlow
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
-                                                                | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
+                                                                | SubB(z) ->    printfn "%A %A" [z] tail2
+                                                                                (produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)@(addFlowSubB actualFlow z tail2 nq1)
                                                                 | SubC(z) -> match z with
-                                                                             | Assign(g, f) ->  printfn ("C1: %A q0 %i Q1 %i") ([(0, SubB(a), nq1)]@tail2) nq0 q1
-                                                                                                actualFlow@[(x, g)]@(produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)
-                            | (nq0, c1, nq1) -> failwith "k"
+                                                                             | Assign(g, f) -> actualFlow@[(x, g)]@(produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)
+                            | (nq0, c1, nq1)::tail2 -> produceActualFlows tail2 actualFlow q1
+                            
+                            
     | (_ , Var(c)) -> match tail with
+                            | [] -> actualFlow
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
-                                                                | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
+                                                                | SubB(z) -> (produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)@(addFlowSubB actualFlow z tail2 nq1)
                                                                 | SubC(z) -> match z with
-                                                                             | Assign(g, f) -> actualFlow@[(y, g)]
+                                                                             | Assign(g, f) -> actualFlow@[(y, g)]@(produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)
+
     | _ -> actualFlow
 
 ;;
 
+let rec removeInvalid (edges:(int * SubTypes * int)List) (edgesOG:(int * SubTypes * int)List) =
+    match edges with
+    | [] -> edgesOG
+    | (q0, c, q1)::tail when q0 = 0 && q1 = 1 -> removeInvalid tail edgesOG
+    | (q0, c, q1)::tail -> removeInvalid tail edgesOG@[(q0, c, q1)]
+let reverseList list = List.fold (fun acc elem -> elem::acc) [] list
 
-produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 2)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0;; // NOT COVERED
-
-produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0;;
-//[(0, SubC (Assign (Var "a", Var "b")), 1)]
-// [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1); (0, SubB (GreaterExpr (Var "a", Num 1)), 4); (4, SubC (Assign (Var "b", Num 2)), 1)]
-
+// WORKS!
+removeDuplicates (produceActualFlows (reverseList (removeInvalid [(0, SubB (GreaterExpr (Var "y", Num 2)), 2); (0, SubB (NotExpr (GreaterExpr (Var "y", Num 2))), 1); (2, SubB (GreaterExpr (Var "b", Var "x")), 3); (3, SubC (Assign (Var "a", Num 2)), 4); (4, SubB (GreaterExpr (Var "z", Num 2)), 5); (5, SubC (Assign (Var "c", Num 2)), 0)] [])) [] 0) [];;
 
 
 
