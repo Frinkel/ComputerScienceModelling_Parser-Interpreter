@@ -137,13 +137,13 @@ and addFlowSubB actualFlow a tail q1 =
     | OrExpr(x,y)               -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
     | ShortOrExpr(x,y)          -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
     | ShortAndExpr(x,y)         -> (addFlowSubB actualFlow x tail q1)@(addFlowSubB actualFlow y tail q1) // REVISIT?
-    | EqualsExpr(x,y)           -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
-    | NotEqualsExpr(x,y)        -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
-    | GreaterExpr(x,y)          -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
-    | LessExpr(x,y)             -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
-    | GreaterOrEqualExpr(x,y)   -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
-    | LessOrEqualExpr(x,y)      -> addVarsFromBExprToActualFlow actualFlow (x,y) tail q1
-and addVarsFromBExprToActualFlow actualFlow (x,y) tail q1 = match (x,y) with
+    | EqualsExpr(x,y)           -> addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1
+    | NotEqualsExpr(x,y)        -> addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1
+    | GreaterExpr(x,y)          -> addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1
+    | LessExpr(x,y)             -> addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1
+    | GreaterOrEqualExpr(x,y)   -> addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1
+    | LessOrEqualExpr(x,y)      -> addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1
+and addVarsFromBExprToActualFlow actualFlow (x,y) a tail q1 = match (x,y) with
     | (Var(c), Var(d)) -> match tail with
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
                                                                 | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
@@ -153,8 +153,9 @@ and addVarsFromBExprToActualFlow actualFlow (x,y) tail q1 = match (x,y) with
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
                                                                 | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
                                                                 | SubC(z) -> match z with
-                                                                             | Assign(g, f) ->  printfn ("C1: %A TAIL1: %A TAIL2: %A : nq1 : %i") [c] tail tail2 nq1
-                                                                                                actualFlow@[(x, g)]@(produceActualFlows (tail2) [] nq1)
+                                                                             | Assign(g, f) ->  printfn ("C1: %A q0 %i Q1 %i") ([(0, SubB(a), nq1)]@tail2) nq0 q1
+                                                                                                actualFlow@[(x, g)]@(produceActualFlows ([(0, SubB(a), nq1)]@tail2) [] 0)
+                            | (nq0, c1, nq1) -> failwith "k"
     | (_ , Var(c)) -> match tail with
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
                                                                 | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
@@ -162,12 +163,12 @@ and addVarsFromBExprToActualFlow actualFlow (x,y) tail q1 = match (x,y) with
                                                                              | Assign(g, f) -> actualFlow@[(y, g)]
     | _ -> actualFlow
 
+;;
 
 
+produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 2)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0;; // NOT COVERED
 
-produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0 // NOT COVERED
-
-produceActualFlows [(3, SubC (Assign (Var "c", Num 2)), 1)] [] 3
+produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0;;
 //[(0, SubC (Assign (Var "a", Var "b")), 1)]
 // [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1); (0, SubB (GreaterExpr (Var "a", Num 1)), 4); (4, SubC (Assign (Var "b", Num 2)), 1)]
 
