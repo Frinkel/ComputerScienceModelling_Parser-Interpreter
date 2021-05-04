@@ -123,6 +123,7 @@ let rec produceActualFlows (edges:(int * SubTypes * int)List) (actualFlow:(AExpr
     | (q0, c, q1)::tail  when q = q0 -> match (c) with 
                                         | SubC(x) -> produceActualFlows tail (addFlowSubC actualFlow x) q1
                                         | SubB(x) -> produceActualFlows tail (addFlowSubB actualFlow x tail q1) q1
+                                        | _ -> produceActualFlows tail actualFlow q
 and addFlowSubC actualFlow x =
     match x with
     | Assign(a, b) -> match (a, b) with
@@ -152,7 +153,8 @@ and addVarsFromBExprToActualFlow actualFlow (x,y) tail q1 = match (x,y) with
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
                                                                 | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
                                                                 | SubC(z) -> match z with
-                                                                             | Assign(g, f) -> actualFlow@[(x, g)]
+                                                                             | Assign(g, f) ->  printfn ("C1: %A TAIL1: %A TAIL2: %A : nq1 : %i") [c] tail tail2 nq1
+                                                                                                actualFlow@[(x, g)]@(produceActualFlows (tail2) [] nq1)
     | (_ , Var(c)) -> match tail with
                             | (nq0, c1, nq1)::tail2  when q1 = nq0 -> match c1 with
                                                                 | SubB(z) -> addFlowSubB actualFlow z tail2 nq1
@@ -160,12 +162,12 @@ and addVarsFromBExprToActualFlow actualFlow (x,y) tail q1 = match (x,y) with
                                                                              | Assign(g, f) -> actualFlow@[(y, g)]
     | _ -> actualFlow
 
-;;
 
 
-produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0;; // NOT COVERED
 
+produceActualFlows [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1)] [] 0 // NOT COVERED
 
+produceActualFlows [(3, SubC (Assign (Var "c", Num 2)), 1)] [] 3
 //[(0, SubC (Assign (Var "a", Var "b")), 1)]
 // [(0, SubB (GreaterExpr (Var "b", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "c", Num 2)), 1); (0, SubB (GreaterExpr (Var "a", Num 1)), 4); (4, SubC (Assign (Var "b", Num 2)), 1)]
 
