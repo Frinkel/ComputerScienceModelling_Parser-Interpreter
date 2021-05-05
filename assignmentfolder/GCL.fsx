@@ -158,12 +158,13 @@
             if environment = 2 then // Security analysis
                 
                 printfn "Specify security lattice."
-                let lattice = Console.ReadLine()
+                let lattice = securityLatticeChecker (Console.ReadLine())
 
                 printfn ""
                 printfn "Specify security classifications:"
                 let initSecurityVars = InitializationOfSecurity varList []
-
+                let securityLattice = (securityLatticeInitializer lattice)
+                checkLatticeAgainstVars securityLattice initSecurityVars
                 printfn ""
                 printf "Allowed flow: "
                 let allowedFlow = produceAllowedFlowList (securityLatticeInitializer lattice) initSecurityVars initSecurityVars []

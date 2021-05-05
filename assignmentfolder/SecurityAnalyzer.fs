@@ -115,7 +115,17 @@ and removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowed
 //                          actualFlowsList
 //     | _               -> printfn "Error! stuck at node %i " q
 //                          actualFlowsList
-
+let rec checkLatticeAgainstVars (lattice:(AExpr * AExpr)List) (securityVars:(AExpr * AExpr)List) = 
+    match securityVars with
+    | [] -> true
+    | (x,y)::tail when latticeContains y lattice -> checkLatticeAgainstVars lattice tail 
+    | _ -> printfn "Security lattice doesn't match security classification for variables and arrays"
+           failwith ""
+and latticeContains (elem:(AExpr)) (lattice:(AExpr * AExpr)List) =
+        match lattice with
+        | [] -> true
+        | (x,y)::tail when (elem = x || elem = y) -> latticeContains elem tail
+        | _  -> false 
 
 let rec produceActualFlows (edges:(int * SubTypes * int)List) (actualFlow:(AExpr * AExpr)List) (q:int) =
     match edges with
@@ -183,14 +193,20 @@ let rec removeInvalid (edges:(int * SubTypes * int)List) (edgesOG:(int * SubType
 let reverseList list = List.fold (fun acc elem -> elem::acc) [] list
 
 // WORKS!
-removeDuplicates (produceActualFlows (reverseList (removeInvalid [(0, SubB (GreaterExpr (Var "y", Num 2)), 2); (0, SubB (NotExpr (GreaterExpr (Var "y", Num 2))), 1); (2, SubB (GreaterExpr (Var "b", Var "x")), 3); (3, SubC (Assign (Var "a", Num 2)), 4); (4, SubB (GreaterExpr (Var "z", Num 2)), 5); (5, SubC (Assign (Var "c", Num 2)), 0)] [])) [] 0) [];;
+let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
+let (secClassTest: (AExpr * AExpr)List) = [(Var("a"), Var("Public")); (Var("y"), Var("Private"))]
 
 
+let actualFlow = removeDuplicates (produceActualFlows (reverseList (removeInvalid [(0, SubB (GreaterExpr (Var "y", Num 2)), 2);(0, SubB (NotExpr (GreaterExpr (Var "y", Num 2))), 1);(2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "y", PlusExpr (Var "y", Num 1))), 0)] [])) [] 0) [];;
+let allowedFlow = produceAllowedFlowList secLatTest secClassTest secClassTest []
+
+let rec produceViolationFlow (actualFlow:(AExpr * AExpr)List) (allowedFlow:(AExpr * AExpr)List) (violationFlow:(AExpr * AExpr)List) = 
+    match actualFlow with
+    | [] -> violationFlow
+    | (x,y)::tail when listContains (x,y) allowedFlow -> produceViolationFlow tail allowedFlow violationFlow
+    | (x,y)::tail -> produceViolationFlow tail allowedFlow [(x,y)]@violationFlow
 
 //produceActualFlows prog prog [Var "b"; Var "a"; Var "c"] [] 0;;
+produceViolationFlow actualFlow allowedFlow []
 
 
-// let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
-// let (secClassTest: (AExpr * AExpr)List) = [(Var("x"), Var("Public")); (Var("y"), Var("Private"))]
-
-// produceAllowedFlowList secLatTest secClassTest secClassTest []
