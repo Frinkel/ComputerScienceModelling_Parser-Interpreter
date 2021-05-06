@@ -152,8 +152,8 @@
             let varList = findVariables edgeList
             //printfn "%A" varList
 
-            printfn "TEST %A" edgeList
-            printfn "TEST %A" varList
+            // printfn "TEST %A" edgeList
+            // printfn "TEST %A" varList
 
             if environment = 2 then // Security analysis
                 
@@ -166,10 +166,27 @@
                 let securityLattice = (securityLatticeInitializer lattice)
                 checkLatticeAgainstVars securityLattice initSecurityVars
                 printfn ""
+
+                printf "Actual flow: "
+                let actualFlow = removeDuplicates (produceActualFlows (reverseList (removeInvalid edgeList [])) [] 0) []
+                // printfn "TEST %A" actualFlow
+                prettySecurityPrint actualFlow 
+
                 printf "Allowed flow: "
                 let allowedFlow = produceAllowedFlowList (securityLatticeInitializer lattice) initSecurityVars initSecurityVars []
-                printfn "TEST %A" allowedFlow
+                // printfn "TEST %A" allowedFlow
                 prettySecurityPrint allowedFlow
+                
+                
+                let violatingFlow = produceViolationFlow actualFlow allowedFlow []
+                if violatingFlow <> [] then 
+                    printf "Violating flow: "
+                    // printfn "TEST %A" violatingFlow
+                    prettySecurityPrint violatingFlow
+                    printfn "Not secure"
+                else 
+                    printfn "Violating flow: none"
+                    printfn "Secure"
                 printfn ""
 
                 

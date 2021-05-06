@@ -94,7 +94,7 @@ and addToList (x:AExpr) (l:AExpr List) (allowedFlowList: (AExpr * AExpr)List) =
     match l with
     | head::tail -> addToList x tail ([(x,head)]@allowedFlowList)
     | _ -> allowedFlowList
-and removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowedFlowList: (AExpr * AExpr)List) =
+let rec removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowedFlowList: (AExpr * AExpr)List) =
     match allowedFlowList with
     | x::tail when (listContains x accumulatingAllowedFlowList) -> removeDuplicates tail accumulatingAllowedFlowList
     | x::tail -> removeDuplicates tail ([x]@accumulatingAllowedFlowList)
@@ -193,12 +193,12 @@ let rec removeInvalid (edges:(int * SubTypes * int)List) (edgesOG:(int * SubType
 let reverseList list = List.fold (fun acc elem -> elem::acc) [] list
 
 // WORKS!
-let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
-let (secClassTest: (AExpr * AExpr)List) = [(Var("a"), Var("Public")); (Var("y"), Var("Private"))]
+// let (secLatTest: (AExpr * AExpr)List) = [(Var("Public"), Var("Private"))]
+// let (secClassTest: (AExpr * AExpr)List) = [(Var("a"), Var("Public")); (Var("y"), Var("Private"))]
 
 
-let actualFlow = removeDuplicates (produceActualFlows (reverseList (removeInvalid [(0, SubB (GreaterExpr (Var "y", Num 2)), 2);(0, SubB (NotExpr (GreaterExpr (Var "y", Num 2))), 1);(2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "y", PlusExpr (Var "y", Num 1))), 0)] [])) [] 0) [];;
-let allowedFlow = produceAllowedFlowList secLatTest secClassTest secClassTest []
+// let actualFlow = removeDuplicates (produceActualFlows (reverseList (removeInvalid [(0, SubB (GreaterExpr (Var "y", Num 2)), 2);(0, SubB (NotExpr (GreaterExpr (Var "y", Num 2))), 1);(2, SubC (Assign (Var "a", Num 2)), 3); (3, SubC (Assign (Var "y", PlusExpr (Var "y", Num 1))), 0)] [])) [] 0) [];;
+// let allowedFlow = produceAllowedFlowList secLatTest secClassTest secClassTest []
 
 let rec produceViolationFlow (actualFlow:(AExpr * AExpr)List) (allowedFlow:(AExpr * AExpr)List) (violationFlow:(AExpr * AExpr)List) = 
     match actualFlow with
@@ -207,6 +207,6 @@ let rec produceViolationFlow (actualFlow:(AExpr * AExpr)List) (allowedFlow:(AExp
     | (x,y)::tail -> produceViolationFlow tail allowedFlow [(x,y)]@violationFlow
 
 //produceActualFlows prog prog [Var "b"; Var "a"; Var "c"] [] 0;;
-produceViolationFlow actualFlow allowedFlow []
+// produceViolationFlow actualFlow allowedFlow []
 
 
