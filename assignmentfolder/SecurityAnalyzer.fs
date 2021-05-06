@@ -69,6 +69,12 @@ and getArrayInitializationFromUser (x:string) =
 // [(i, Public); (x, Public)]
 // (^[a-z A-Z]+[a-zA-Z0-9]+?$)
 
+let rec removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowedFlowList: (AExpr * AExpr)List) =
+    match allowedFlowList with
+    | x::tail when (listContains x accumulatingAllowedFlowList) -> removeDuplicates tail accumulatingAllowedFlowList
+    | x::tail -> removeDuplicates tail ([x]@accumulatingAllowedFlowList)
+    | _ -> accumulatingAllowedFlowList
+
 let rec produceAllowedFlowList (secLattice: (AExpr * AExpr)List) (secClassification: (AExpr * AExpr)List) (secClassificationTail: (AExpr * AExpr)List) (allowedFlowList: (AExpr * AExpr)List) = 
     match secClassificationTail with 
     | (x,y)::tail when (checkSecurityLattice y secLattice) -> produceAllowedFlowList secLattice secClassification tail (addToList x ([x]@(getVariableFromSecClassification ([y]@(getCorrespondingSecurity y secLattice [])) secClassification [])) allowedFlowList) 
@@ -94,11 +100,7 @@ and addToList (x:AExpr) (l:AExpr List) (allowedFlowList: (AExpr * AExpr)List) =
     match l with
     | head::tail -> addToList x tail ([(x,head)]@allowedFlowList)
     | _ -> allowedFlowList
-let rec removeDuplicates (allowedFlowList: (AExpr * AExpr)List) (accumulatingAllowedFlowList: (AExpr * AExpr)List) =
-    match allowedFlowList with
-    | x::tail when (listContains x accumulatingAllowedFlowList) -> removeDuplicates tail accumulatingAllowedFlowList
-    | x::tail -> removeDuplicates tail ([x]@accumulatingAllowedFlowList)
-    | _ -> accumulatingAllowedFlowList
+
 
 
 
@@ -130,8 +132,7 @@ and latticeContains (elem:(AExpr)) (lattice:(AExpr * AExpr)List) =
 let rec produceActualFlows (edges:(int * SubTypes * int)List) (actualFlow:(AExpr * AExpr)List) (q:int) =
     match edges with
     | [] -> actualFlow
-    | (q0, c, q1)::tail  when q0 = 0 && q1 = 1 ->   printfn "OK"
-                                                    produceActualFlows tail actualFlow q
+    | (q0, c, q1)::tail  when q0 = 0 && q1 = 1 ->  produceActualFlows tail actualFlow q
     | (q0, c, q1)::tail  when q = q0 -> match (c) with 
                                         | SubC(x) -> produceActualFlows tail (addFlowSubC actualFlow x) q1
                                         | SubB(x) -> produceActualFlows tail (addFlowSubB actualFlow x tail q1) q1

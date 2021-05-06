@@ -206,17 +206,31 @@
                 printfn "Final variable assignment:"
                 printAssignmentList varList
                
-            // if environment = 1 then
-            //     let aExprList = findVariables edgeList
-            //     let varListSign =  (initializeSigns edgeList (initializeSignVars varList []) [] aExprList)
-            //     printfn "%A" varListSign
+            elif environment = 1 then
+                let aExprList = findVariables edgeList
 
-            //     // let varListSign2 = updateNode varListSign varListSign 0 1 (Var("a")) Zero []
-            //     // printfn "2 %A" varListSign2
+                // printfn ""
+                // printfn "Final variable assignment:"
+                // printAssignmentList varList
+                // Writes the output to a dot file, that can be made into graphical representation using graphviz
+                // Get a printable string from the edge list
+                printfn "Initialization of sign values for Variables and Arrays:"
+                let varListSign =  (initializeSigns edgeList (initializeSignVars aExprList []) [] aExprList)
+                // printfn "%A" varListSign
 
-            //     let varListSign = signAnalysis edgeList edgeList varListSign 0
-            //     printfn " "
-            //     printfn "%A" varListSign
+                // let varListSign2 = updateNode varListSign varListSign 0 1 (Var("a")) Zero []
+                // printfn "2 %A" varListSign2
+
+                // let varListSign = signAnalysis edgeList edgeList varListSign 0
+                let workList = prepareWorkList edgeList varListSign []
+                // printfn "%A" workList
+                // printfn " "
+                // printfn "%A" workList
+            
+                let varListSign = signAnalysis workList workList varListSign 1
+                //printfn "%A" varListSign
+
+                prettySignPrinter varListSign
             
 
 
@@ -228,7 +242,7 @@
 
             File.WriteAllText ("assignmentfolder/graph.dot", "digraph G {\n" + edgeListString + "}")
 
-            compute n
+            compute 3
             with err -> compute (n-1)
 
     // Start interacting with the user

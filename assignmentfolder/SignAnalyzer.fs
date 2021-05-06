@@ -2,6 +2,18 @@ module SignAnalyzer
 
 open System.Text.RegularExpressions
 
+let rec listContains (elem) (l) = List.exists (fun x -> x = elem) l
+
+let cleanUpSignList sl = 
+    if (listContains Plus sl) && (listContains Minus sl) && (listContains Zero sl) then [Plus;Zero;Minus]
+    else if (listContains Plus sl) && (listContains Minus sl) then  [Plus;Minus]
+    else if (listContains Plus sl) && (listContains Zero sl) then  [Plus;Zero]
+    else if (listContains Minus sl) && (listContains Zero sl) then  [Minus;Zero]
+    else if (listContains Plus sl) then [Plus]
+    else if (listContains Minus sl) then [Minus]
+    else [Zero]
+
+
 // From: https://stackoverflow.com/questions/53818476/f-match-many-regex
 let (|Regex|_|) pattern input =
     let m = Regex.Match(input, pattern)
@@ -50,160 +62,316 @@ and getVariableInitializationFromUser (x:string) =
 and getArrayInitializationFromUser (x:string) =
     printfn "Enter all ellements of your array with the syntax \"{Sign 1, Sign 2, ..., Sign N}\""
     printf "%s =" x
-    [Array(x,Num(1)), arrayStringToSignList(Console.ReadLine())]
+    [Array(x,Num(1)), cleanUpSignList(arrayStringToSignList(Console.ReadLine()))]
 
-    // | Assign(var, x) -> match var with
-    //                     | Var(v)       -> setVariable var (aval x varList) varList []
-    //                     | Array(v1,v2) -> setArray v1 (aval v2 varList) (aval x varList) varList []
+let rec reverseListSign list = List.fold (fun acc elem -> elem::acc) [] list
 
-// let rec bvalSign b (varList:(int*(AExpr*(Signs)List)List)List) =
-//     match b with
-//     | Bool(x)                   -> x
-//     | AndExpr(x,y)              -> (bval x varList) & (bval y varList)
-//     | NotExpr(x)                -> not (bval x varList)
-//     | OrExpr(x,y)               -> (bval x varList) || (bval y varList)
-//     | ShortOrExpr(x,y)          -> ((bval x varList) || (bval y varList))
-//     | ShortAndExpr(x,y)         -> ((bval x varList) && (bval y varList))
-//     | EqualsExpr(x,y)           -> (aval x varList) = (aval y varList)
-//     | NotEqualsExpr(x,y)        -> (aval x varList) <> (aval y varList)
-//     | GreaterExpr(x,y)          -> (aval x varList) > (aval y varList)
-//     | LessExpr(x,y)             -> (aval x varList) < (aval y varList)
-//     | GreaterOrEqualExpr(x,y)   -> (aval x varList) >= (aval y varList)
-//     | LessOrEqualExpr(x,y)      -> (aval x varList) <= (aval y varList)
+let rec setNewSigns var s (l:(AExpr*(Signs)List)List) (nl:(AExpr*(Signs)List)List) =
+    match l with
+    | (ae,sl)::tail when var = ae -> setNewSigns var s tail ([(ae,s)]@nl)
+    | (ae,sl)::tail -> setNewSigns var s tail ([(ae,sl)]@nl)
+    | _ -> (reverseListSign nl)
+and getParticularSigns var (l:(AExpr*(Signs)List)List) =
+    match l with
+    | (ae,sl)::tail when var = ae -> sl
+                                    //  match sl with
+                                    //  | s::tail -> s
+                                    //  | _ -> Zero
+    | (ae,sl)::tail -> getParticularSigns var tail
+    | _ -> [Zero]
 
-let rec getSignListLength (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) =
-    match varListSign with
-    | (q0,l)::tail when q0 = q -> match l with
-                                  | (x,l1)::tail -> l1.Length
-                                  | _ -> 0
-    | (q0,l)::tail -> getSignListLength tail q
-    | _ -> 0
 
-let rec duplicateSign (sign:Signs) (i:int) nl=
-    match i with
-    | 0 -> nl
-    | _ -> duplicateSign sign (i-1) (sign::nl)
 
-let rec getSignsFromList (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) (var:AExpr) =
-    match varListSign with
-    | (q0,l)::tail when q0 = q -> getSignsFromNode l var
-    | (q0,l)::tail -> getSignsFromList tail q var
-    | _ -> []
-    
-and getSignsFromNode (node:(AExpr*(Signs)List)List) (var:AExpr) =
-    match node with
-    | (x,l)::tail when x = var -> l
-    | (x,l)::tail -> getSignsFromNode tail var
-    | _ -> []
+let rec plusEvalSign (s1:Signs) (s2:Signs) =
+    match (s1,s2) with
+    | (s1,s2) when s1 = Minus && s2 = Minus-> [Minus]
+    | (s1,s2) when (s1 = Zero && s2 = Minus) || (s1 = Minus && s2 = Zero) -> [Minus]
+    | (s1,s2) when (s1 = Plus && s2 = Minus) || (s1 = Minus && s2 = Plus) -> [Minus;Zero;Plus]
+    | (s1,s2) when s1 = Zero && s2 = Zero-> [Zero]
+    | (s1,s2) when (s1 = Zero && s2 = Plus) || (s1 = Plus && s2 = Zero) -> [Plus]
+    | (s1,s2) when s1 = Plus && s2 = Plus-> [Plus]
+and executePlusSign (sl1:Signs List) (sl2:Signs List) (nl:Signs List) =
+    match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executePlusSign sl1tail sl2tail ((plusEvalSign s1 s2)@nl)
+    | _ -> cleanUpSignList(nl)
 
-let rec updateSigns (varListSign:(int*(AExpr*(Signs)List)List)List) (node:(AExpr*(Signs)List)List) (q0:int) (q1:int) (var:AExpr) (sign:Signs) (nl:(AExpr*(Signs)List)List) =
-    match node with
-    | (x,l)::tail when x = var -> updateSigns varListSign tail q0 q1 var sign [(x,(duplicateSign sign ((getSignListLength varListSign q0)) [])@l)]@nl
-    | (x,l)::tail -> updateSigns varListSign tail q0 q1 var sign [(x,(getSignsFromList varListSign q0 x)@l)]@nl
+let rec minusEvalSign (s1:Signs) (s2:Signs) =
+    match (s1,s2) with
+    | (s1,s2) when s1 = Minus && s2 = Minus-> [Minus;Zero;Plus]
+    | (s1,s2) when (s1 = Zero && s2 = Minus) -> [Plus]
+    | (s1,s2) when (s1 = Minus && s2 = Zero) -> [Minus]
+    | (s1,s2) when (s1 = Minus && s2 = Plus) -> [Minus]
+    | (s1,s2) when (s1 = Plus && s2 = Minus) -> [Plus]
+    | (s1,s2) when (s1 = Zero && s2 = Zero) -> [Zero]
+    | (s1,s2) when (s1 = Zero && s2 = Plus) -> [Minus]
+    | (s1,s2) when (s1 = Plus && s2 = Zero) -> [Plus]
+    | (s1,s2) when (s1 = Plus && s2 = Plus) -> [Minus;Zero;Plus]
+and executeMinusSign (sl1:Signs List) (sl2:Signs List) (nl:Signs List) =
+    match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executeMinusSign sl1tail sl2tail ((minusEvalSign s1 s2)@nl)
+    | _ -> cleanUpSignList(nl)
+
+let rec timesEvalSign (s1:Signs) (s2:Signs) =
+    match (s1,s2) with
+    | (s1,s2) when s1 = Minus && s2 = Minus-> [Plus]
+    | (s1,s2) when (s1 = Zero || s2 = Zero) -> [Zero]
+    | (s1,s2) when (s1 = Minus && s2 = Plus) || (s1 = Plus && s2 = Minus) -> [Minus]
+    | (s1,s2) when (s1 = Plus && s2 = Plus) -> [Plus]
+and executeTimesSign (sl1:Signs List) (sl2:Signs List) (nl:Signs List) =
+    match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executeTimesSign sl1tail sl2tail ((timesEvalSign s1 s2)@nl)
+    | _ -> cleanUpSignList(nl)
+
+let rec divideEvalSign (s1:Signs) (s2:Signs) =
+    match (s1,s2) with
+    | (s1,s2) when s2 = Zero -> printfn "Can't divide by zero"
+                                failwith "Can't divide by zero"
+    | (s1,s2) when s1 = Zero -> [Zero]
+    | (s1,s2) when s1 = Minus && s2 = Minus-> [Plus]
+    | (s1,s2) when (s1 = Minus && s2 = Plus) -> [Minus]
+    | (s1,s2) when (s1 = Minus && s2 = Plus) || (s1 = Plus && s2 = Minus) -> [Minus]
+    | (s1,s2) when (s1 = Plus && s2 = Plus) -> [Plus]
+and executeDivideSign (sl1:Signs List) (sl2:Signs List) (nl:Signs List) =
+    match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executeDivideSign sl1tail sl2tail ((divideEvalSign s1 s2)@nl)
+    | _ -> cleanUpSignList(nl)
+
+let rec powEvalSign (s1:Signs) (s2:Signs) =
+    match (s1,s2) with
+    | (s1,s2) when  s2 = Zero -> [Plus]
+    | (s1,s2) when s2 = Minus -> printfn "Can not take number to the power of negative number"
+                                 failwith "Can not take number to the power of negative number"
+    | (s1,s2) when s1 = Zero -> [Zero]
+    | (s1,s2) when s1 = Minus -> [Minus;Plus]
+    | (s1,s2) when s1 = Plus -> [Plus]
+and executePowSign (sl1:Signs List) (sl2:Signs List) (nl:Signs List) =
+    match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executePowSign sl1tail sl2tail ((powEvalSign s1 s2)@nl)
+    | _ -> cleanUpSignList(nl)
+
+let rec reverseSign (sl:Signs List) nl = 
+    match sl with
+    | s::tail when s = Plus-> reverseSign tail ([Minus]@nl)
+    | s::tail when s = Minus-> reverseSign tail ([Plus]@nl)
+    | s::tail when s = Zero-> reverseSign tail ([Zero]@nl)
     | _ -> nl
 
-//(getSignsFromList varListSign q0 x)
-let rec updateNode (varListSign:(int*(AExpr*(Signs)List)List)List) (varListSign2:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (var:AExpr) (sign:Signs) (nl:(int*(AExpr*(Signs)List)List)List)=
-    match varListSign with
-    | (q,l)::tail when q = q1 -> updateNode tail varListSign2 q0 q1 var sign [q,(updateSigns varListSign2 l q0 q1 var sign [])]@nl
-    | (q,l)::tail -> updateNode tail varListSign2 q0 q1 var sign [(q,l)]@nl
-    | _ -> nl
-
-let rec avalSign (a:AExpr) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (nl:Signs List)=
+let rec avalSign (a:AExpr) (varListSign:(AExpr*(Signs)List)List) (nl:Signs List) =
     match a with
       | Num(x)            -> if x > 0 then [Plus]@nl else if x = 0 then [Zero]@nl else [Minus]@nl
-//      | Array(var,x)      -> (getArray var (aval x varList) varList)
-      | Var(x)            -> (getSignsFromList varListSign q0 a)
-//      | TimesExpr(x,y)    -> (aval x varList) * (aval y varList)
-//      | DivExpr(x,y)      -> (aval x varList) / (aval y varList)
-      | PlusExpr(x,y)     -> (avalSign x varListSign q0 q1 nl)@(avalSign y varListSign q0 q1 nl)
-//      | MinusExpr(x,y)    -> (aval x varList) - (aval y varList)
-//      | PowExpr(x,y)      -> (pow (aval x varList) (aval y varList))
-//      | UPlusExpr(x)      -> (aval x varList)
-//      | UMinusExpr(x)     -> - (aval x varList)
-//      | _ -> 0
+      | Array(var,x)      -> (getParticularSigns a varListSign)
+      | Var(x)            -> (getParticularSigns a varListSign)
+      | TimesExpr(x,y)    -> executeTimesSign (avalSign x varListSign []) (avalSign y varListSign []) []
+      | DivExpr(x,y)      -> executeDivideSign (avalSign x varListSign []) (avalSign y varListSign []) []
+      | PlusExpr(x,y)     -> executePlusSign (avalSign x varListSign []) (avalSign y varListSign []) []
+      | MinusExpr(x,y)    -> executeMinusSign (avalSign x varListSign []) (avalSign y varListSign []) []
+      | PowExpr(x,y)      -> executePowSign (avalSign x varListSign []) (avalSign y varListSign []) []
+      | UPlusExpr(x)      -> (avalSign x varListSign [])
+      | UMinusExpr(x)     -> reverseSign(avalSign x varListSign []) []
 
-let rec executeUpdateSign (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (var:AExpr) (signList:Signs List) =
-    match signList with
-    | s::tail -> executeUpdateSign (updateNode varListSign varListSign q0 q1 var s []) q0 q1 var tail
-    | _ -> varListSign
+let rec equalsSign (s1:Signs) (s2:Signs) = (s1 = s2)
+and executeEqualsSign (sl1:Signs List) (sl2:Signs List) b =
+     match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executeEqualsSign sl1tail sl2tail ((equalsSign s1 s2) || b)
+    | _ -> b
 
-let rec cvalSign (c:Command) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) =
+let rec notEqualsSign (s1:Signs) (s2:Signs) = 
+     match (s1,s2) with
+     | (Zero,Zero) -> false
+     | _ -> true
+and executeNotEqualsSign (sl1:Signs List) (sl2:Signs List) b =
+    match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executeNotEqualsSign sl1tail sl2tail ((notEqualsSign s1 s2) || b)
+    | _ -> b
+
+let rec greaterSign (s1:Signs) (s2:Signs) =
+    match (s1,s2) with
+    | (Plus,_) -> true
+    | (Zero,Minus) -> true
+    | (Minus,Minus) -> true
+    | _ -> false
+and executeGreaterSign (sl1:Signs List) (sl2:Signs List) b =
+     match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executeGreaterSign sl1tail sl2tail ((greaterSign s1 s2) || b)
+    | _ -> b
+
+let rec lessSign (s1:Signs) (s2:Signs) =
+    match (s1,s2) with
+    | (Minus,_) -> true
+    | (Plus,Plus) -> true
+    | (Zero,Plus) -> true
+    | _ -> false
+and executeLessSign (sl1:Signs List) (sl2:Signs List) b =
+     match (sl1,sl2) with
+    | (s1::sl1tail,s2::sl2tail) -> executeLessSign sl1tail sl2tail ((lessSign s1 s2) || b)
+    | _ -> b
+
+let rec bvalSign b (varListSign:(AExpr*(Signs)List)List) =
+    match b with
+    | Bool(x)                   -> x
+    | AndExpr(x,y)              -> (bvalSign x varListSign) & (bvalSign y varListSign)
+    | NotExpr(x)                -> (bvalSign x varListSign) || not (bvalSign x varListSign)
+    | OrExpr(x,y)               -> (bvalSign x varListSign) || (bvalSign x varListSign)
+    | ShortOrExpr(x,y)          -> ((bvalSign x varListSign) || (bvalSign x varListSign))
+    | ShortAndExpr(x,y)         -> ((bvalSign x varListSign) && (bvalSign x varListSign))
+    | EqualsExpr(x,y)           -> (executeEqualsSign (avalSign x varListSign []) (avalSign y varListSign []) false)
+    | NotEqualsExpr(x,y)        -> (executeNotEqualsSign (avalSign x varListSign []) (avalSign y varListSign []) false)
+    | GreaterExpr(x,y)          -> (executeGreaterSign (avalSign x varListSign []) (avalSign y varListSign []) false)
+    | LessExpr(x,y)             -> (executeLessSign (avalSign x varListSign []) (avalSign y varListSign []) false)
+    | GreaterOrEqualExpr(x,y)   -> (executeGreaterSign (avalSign x varListSign []) (avalSign y varListSign []) false) || (executeEqualsSign (avalSign x varListSign []) (avalSign y varListSign []) false)
+    | LessOrEqualExpr(x,y)      -> (executeLessSign (avalSign x varListSign []) (avalSign y varListSign []) false) || (executeEqualsSign (avalSign x varListSign []) (avalSign y varListSign []) false)
+
+
+let rec getNewSigns var sl (l:(AExpr*(Signs)List)List) (nl:((AExpr*(Signs)List)List)List)  =
+    match sl with
+    | s::tail -> getNewSigns var tail l ([(setNewSigns var [s] l [])]@nl)
+    | _ -> nl
+
+
+let rec cvalSign (l:(AExpr*(Signs)List)List) (c:SubTypes) =
     match c with
-    | Assign(var, x) -> match var with
-                        | Var(v)       -> executeUpdateSign varListSign q0 q1 var (avalSign x varListSign q0 q1 [])
-//                        | Array(v1,v2) -> setArray v1 (aval v2 varList) (aval x varList) varList []
+    | SubC(x) -> match x with
+                 | Assign(var, com) -> match var with
+                                     | Var(v)       -> (getNewSigns var (avalSign com l []) l [])
+                                     | Array(v1,v2) -> (getNewSigns var (avalSign com l []) l [])
+    | SubB(x) -> (if (bvalSign x l) then [l] else [])
 
 
 
 
-
-
-
-let rec containsNode (l:(int*(AExpr*(Signs)List)List)List) (q:int)=
+let rec containsNode (l:(int*((AExpr*(Signs)List)List)List)List) (q:int)=
     match l with
     | (x,y)::tail when (q = x) -> true 
     | (x,y)::tail -> containsNode tail q
     | _ -> false
 
-let rec initializeSignVars (varList:(AExpr * (int)List) List) (nl:(AExpr*(Signs)List)List) =
+let rec initializeSignVars (varList:(AExpr) List) (nl:((AExpr*(Signs)List)List)List) =
     match varList with
-    | (a,l):: tail -> [(a,[])]@(initializeSignVars tail nl)
+    | a:: tail -> [[(a,[])]]@(initializeSignVars tail nl)
     | _ -> nl
 
-let rec initializeSigns (edges:(int * SubTypes * int)List) (varListSign:(AExpr*(Signs)List)List) (nl:(int*(AExpr*(Signs)List)List)List) (aExprList: AExpr List) = 
+let rec initializeSigns (edges:(int * SubTypes * int)List) (varListSign:((AExpr*(Signs)List)List)List) (nl:(int*((AExpr*(Signs)List)List)List)List) (aExprList: AExpr List) = 
     match edges with
-    | (q0,c,q1)::tail when not (containsNode nl q0) && (q0 = 0) -> (initializeSigns tail varListSign (nl@[(0, InitializationOfSigns aExprList [])]) aExprList)
+    | (q0,c,q1)::tail when not (containsNode nl q0) && (q0 = 0) -> (initializeSigns tail varListSign (nl@[(0, [ (InitializationOfSigns aExprList []) ])]) aExprList)
     | (q0,c,q1)::tail when not (containsNode nl q0) -> (initializeSigns tail varListSign (nl@[(q0,varListSign)]) aExprList)
     | (q0,c,q1)::tail -> (initializeSigns tail varListSign nl aExprList)
     | _ -> nl@[(1,varListSign)]
 
-// Removes duplicates from the sign list.
-let rec removeDuplicates (varListSign:(int*(AExpr*(Signs)List)List)List) =
+
+let rec removeDuplicatesSign (varListSign:(int*((AExpr*(Signs)List)List)List)List) =
     match varListSign with 
-    | (q0,l)::tail -> [(q0,(removeDuplicatesHelper l [] 0))]@(removeDuplicates tail)
+    | (q0,l)::tail -> [(q0,(removeDuplicatesSignHelper l []))]@(removeDuplicatesSign tail)
     | _ -> []
-and removeDuplicatesHelper (l:(AExpr*(Signs)List)List) (duplicateList:((Signs)List)List) (index:int): (AExpr*(Signs)List)List =
+and removeDuplicatesSignHelper (l:((AExpr*(Signs)List)List)List) nl =
     match l with
-    | (x,xlist)::tail when index = xlist.Length -> l 
-    | l when (listContains (getEntries l index) duplicateList) ->   printfn "%A 1 index: %i l.length: %i" duplicateList index l.Length
-                                                                    removeDuplicatesHelper (removeEntries l index) (duplicateList) (index)
-    | l ->  printfn "%A 2 index: %i l.length: %i" duplicateList index l.Length
-            removeDuplicatesHelper l ([(getEntries l index)]@duplicateList) (index+1)
-and getEntries (signList:(AExpr*(Signs)List)List) index =
-    match signList with 
-    | ((x,xlist))::tail -> [(listGetElemFromIndex xlist index)]@(getEntries tail index)
-    | _ -> []
-and removeEntries (signList:(AExpr*(Signs)List)List) index =
-    match signList with
-    | ((x,xlist))::tail -> [(x, (listRemoveElemByIndex xlist index 0))]@(removeEntries tail index)
-    | _ -> []
-and listContains (elem:(Signs)List) (l:((Signs)List)List) = List.exists (fun x -> x = elem) l
-and listGetElemFromIndex l index = Seq.item index (Seq.ofList l)
-and listRemoveElemByIndex l index incr =
-    match l with 
-    | x::xtail when index = incr -> xtail
-    | x::xtail -> [x]@(listRemoveElemByIndex xtail index (incr+1))
-    | _ -> []
+    | elem::tail when (listContains elem tail) || (hasEmptySigns elem) -> removeDuplicatesSignHelper tail nl
+    | elem::tail -> removeDuplicatesSignHelper tail ([elem]@nl)
+    | _ -> nl
+and hasEmptySigns (l:(AExpr*(Signs)List)List) =
+    match l with
+    | (ae,sl)::tail -> match sl with
+                       | [] -> true
+                       | _ -> false
+    | _ -> false
 
 
-let rec evalSign (c:Command) (varListSign:(int*(AExpr*(Signs)List)List)List) (q0:int) (q1:int) (length:int) = 
-    match length with
-    | 0 -> printfn "Was in cvalSign between %i and %i" q0 q1
-           varListSign
-    | _ -> printfn "hey"
-           (evalSign c (cvalSign c varListSign q0 q1) q0 q1 (length - 1))
+let rec prepareWorkList (edges:(int * SubTypes * int)List) (varListSign:(int*((AExpr*(Signs)List)List)List)List) (wl:(int * ((int * SubTypes)List) * int)List)=
+    match varListSign with
+    | (q0,l)::tail when q0 = 0 -> prepareWorkList edges tail ([(q0,(getNodesLeadingTo edges q0 []),1)]@wl)
+    | (q0,l)::tail -> prepareWorkList edges tail ([(q0,(getNodesLeadingTo edges q0 []),0)]@wl)
+    | _ -> wl
+and getNodesLeadingTo (edges:(int * SubTypes * int)List) (q:int) nl=
+    match edges with
+    | (q0,c,q1)::tail  when q = q1 -> getNodesLeadingTo tail q ([(q0,c)]@nl)
+    | (q0,c,q1)::tail -> getNodesLeadingTo tail q nl
+    | _ -> nl
 
-let rec signAnalysis (edges:(int * SubTypes * int)List) (edgestail:(int * SubTypes * int)List) (varListSign:(int*(AExpr*(Signs)List)List)List) (q:int) =
-    match edgestail with
-    | (q0,c,q1)::tail  when q = q0 -> match (c) with 
-                                      | SubC(x)                      -> printfn "Took path %i to %i" q0 q1
-                                                                        signAnalysis edges edges (removeDuplicates (evalSign x varListSign q0 q1 (getSignListLength varListSign q0) )) q1
-    //                                 | SubB(x) when (bvalSign x varListSign)-> printfn "Took path %i to %i" q0 q1
-    //                                                                           signAnalysis edges edges varList q1
-    //                                 | _                            -> signAnalysis edges tail varList q
-    | (q0,e,q1)::tail -> signAnalysis edges tail varListSign q
-    // | _ when q = 1    -> printfn "Succes finished at node %i " q
-    //                      varListSign
-    | _               -> printfn "Error! stuck at node %i " q
-                         (removeDuplicates varListSign)
+
+let rec checkPrevStatus (node:int) (status:int) (wl:(int * ((int * SubTypes)List) * int)List) (originalWl:(int * ((int * SubTypes)List) * int)List)=
+    match wl with
+    | (n,l,s)::tail when n = node -> prevStatus n status l originalWl (true)
+    | (n,l,s)::tail -> checkPrevStatus node status tail originalWl 
+    | _ -> false
+and prevStatus (n:int) (status:int) (l:((int * SubTypes)List)) (wl:(int * ((int * SubTypes)List) * int)List) (b:bool) =
+    match l with
+    | (i,c)::tail -> prevStatus n status tail wl (b && (statusFromNode i status wl))
+    | _ -> b
+and statusFromNode (node:int) (status:int) (wl:(int * ((int * SubTypes)List) * int)List) =
+    match wl with
+    | (n,l,s)::tail when node = n -> (s >= status)
+    | (n,l,s)::tail -> statusFromNode node status tail
+    | _ -> false
+
+let rec onWorkListcomplete (node:int) (wl:(int * ((int * SubTypes)List) * int)List) nl =
+    match wl with
+    | (n,l,s)::tail when n = node -> onWorkListcomplete node tail ([((n,l,(s+1)))]@nl)
+    | (n,l,s)::tail -> onWorkListcomplete node tail ([(n,l,s)]@nl)
+    | _ -> nl
+
+let rec runSignCommand q0 q1 c (varListSign:(int*((AExpr*(Signs)List)List)List)List) (varListSignOriginal:(int*((AExpr*(Signs)List)List)List)List) (nl:(int*((AExpr*(Signs)List)List)List)List) =
+     match varListSign with
+    | (q,l)::tail when q = q1 -> runSignCommand q0 q1 c tail varListSignOriginal ([(q,(updateNode q0 q1 c (getSignsFromNode q0 varListSignOriginal) [])@l)]@nl)//updateNode tail varListSign2 q0 q1 var sign [q,(updateSigns varListSign2 l q0 q1 var sign [])]@nl
+    | (q,l)::tail -> runSignCommand q0 q1 c tail varListSignOriginal ((q,l)::nl)//updateNode tail varListSign2 q0 q1 var sign [(q,l)]@nl
+    | _ -> nl
+and getSignsFromNode node (varListSign:(int*((AExpr*(Signs)List)List)List)List) =
+    match varListSign with
+    | (q,l)::tail when q = node -> l
+    | (q,l)::tail -> getSignsFromNode node tail
+    | _ -> []
+and updateNode q0 q1 c (l0:((AExpr*(Signs)List)List)List) (nl:((AExpr*(Signs)List)List)List) =
+    match l0 with
+    | el::tail -> updateNode q0 q1 c tail ((cvalSign el c)@nl)
+    | _ -> nl
+
+
+let rec evalSign (node:int) (l:((int * SubTypes)List)) (varListSign:(int*((AExpr*(Signs)List)List)List)List) = 
+    match l with
+    | (i,c)::tail -> evalSign node tail (runSignCommand i node c varListSign varListSign []) 
+    | _ -> varListSign
+
+let rec signAnalysis (wl:(int * ((int * SubTypes)List) * int)List) (wltail:(int * ((int * SubTypes)List) * int)List) (varListSign:(int*((AExpr*(Signs)List)List)List)List) (level:int) =
+    match wltail with
+    | (n,l,s)::tail when (checkPrevStatus n level wl wl) && s <> 1 -> signAnalysis (onWorkListcomplete n wl []) (onWorkListcomplete n wl []) (removeDuplicatesSign (evalSign n l varListSign)) level
+    | (n,l,s)::tail -> signAnalysis wl tail varListSign level
+    | _ when (isWlComplete wl (level) true) -> //printfn "Finished correctly"
+                                               varListSign
+    | _ -> //printfn "did not Finished correctly"
+           (reverseListSign (signAnalysis wl wl (signAnalysis wl wl (varListSign) (level-1)) (level-1)))
+
+and isWlComplete (wl:(int * ((int * SubTypes)List) * int)List) (level:int) (b:bool) =
+    match wl with
+    | (n,l,s)::tail -> isWlComplete tail level (b && (s >= level))
+    | _ -> b
+
+let rec prettySignPrinter (varListSign:(int*((AExpr*(Signs)List)List)List)List) =
+    match varListSign with
+    | (n,l)::tail when n = 1-> printfn "Node %i (Final node)" n
+                               prettySignPrinterHelper l
+                               prettySignPrinter tail
+    | (n,l)::tail -> printfn "Node %i" n
+                     prettySignPrinterHelper l
+                     prettySignPrinter tail
+    | _ -> printfn ""
+and prettySignPrinterHelper (l:((AExpr*(Signs)List)List)List) =
+    match l with
+    | l1::tail -> prettySignPrintEachComb l1
+                  prettySignPrinterHelper tail
+    | _ -> printf ""
+and prettySignPrintEachComb (l:(AExpr*(Signs)List)List) =
+    match l with
+    | (ae,sl)::tail -> printf "%s: %s" (stringASign ae) (printSignList sl)
+                       prettySignPrintEachComb tail
+    | _ -> printfn ""
+and stringASign s = 
+    match s with
+    | Var(x)            -> x:string
+    | Array(x,y)        -> (x:string) + "[" + "]"
+and printSignList (sl:Signs List) =
+    match sl with
+    | s::tail -> (printSignList tail ) + " " + (printSign s) + " "
+    | _ -> ""
+and printSign s =
+    match s with
+    | Plus -> "+"
+    | Minus -> "-"
+    | Zero -> "0"
