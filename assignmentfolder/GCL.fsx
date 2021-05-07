@@ -34,6 +34,10 @@
     #load "SecurityAnalyzer.fs"
     open SecurityAnalyzer
 
+    #load "MethodChecker.fs"
+    open MethodChecker
+    
+
     // We define the evaluation function recursively, by induction on the structure
     // of arithmetic expressions (AST of type expr)
 
@@ -152,7 +156,7 @@
             let varList = findVariables edgeList
             //printfn "%A" varList
 
-            // printfn "TEST %A" edgeList
+            printfn "TEST %A" edgeList
             // printfn "TEST %A" varList
 
             if environment = 2 then // Security analysis
