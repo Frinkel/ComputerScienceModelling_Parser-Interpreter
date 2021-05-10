@@ -102,7 +102,9 @@
                                       1
         | Regex @"(^sec)" [ chr ] ->  printfn "Security analyzer chosen."
                                       2
-        | _                     ->    printfn "Error: Please write either \'step\', \'sig\' or \'sec\'."
+        | Regex @"(^met)" [ chr ] ->  printfn "Method checker chosen."
+                                      3                                
+        | _                     ->    printfn "Error: Please write either \'step\', \'sig\', \'sec\' or \'met\'."
                                       failwith "Neither chosen"
 
 
@@ -123,7 +125,7 @@
             printfn "Bye bye"
         else
             try
-            printfn("Choose your environment, \'step\' for step-wise, \'sig\' for sign analyzer or \'sec\' security analyzer.")
+            printfn("Choose your environment, \'step\' for step-wise, \'sig\' for sign analyzer, \'sec\' security analyzer or \'met\' for method checker.")
             let environment = analysisType(Console.ReadLine())
 
             // We parse the input string
@@ -237,7 +239,10 @@
                 prettySignPrinter varListSign
             
 
-
+            elif environment = 3 then
+                printfn ""
+                printfn "Method checker is currently not working"
+                printfn ""
 
 
             

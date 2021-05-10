@@ -46,9 +46,9 @@ let rec bvalMethod b (varList:(AExpr * (int)List) List) =
     | LessOrEqualExpr(x,y)      -> (avalMethod x varList) <= (avalMethod y varList)
 
 
-let rec checkMethod (visited:((int * SubTypes * int) *  (AExpr * (int)List) List))List) (toExplore) (edges) = 
+// let rec checkMethod (visited:((int * SubTypes * int) *  (AExpr * (int)List) List))List) (toExplore) (edges) = 
 
-let edgeList = [(0, SubB (GreaterExpr (Var "x", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 1); (0, SubB (LessExpr (Var "x", Num 0)), 3); (3, SubC (Assign (Var "b", Num 2)), 1)]
-reachOne edgeList 0 []
+// let edgeList = [(0, SubB (GreaterExpr (Var "x", Num 0)), 2); (2, SubC (Assign (Var "a", Num 2)), 1); (0, SubB (LessExpr (Var "x", Num 0)), 3); (3, SubC (Assign (Var "b", Num 2)), 1)]
+// reachOne edgeList 0 []
 
-let (nml:((int * SubTypes * int) *  (AExpr * (int)List) List))List) = [((0, SubB (GreaterExpr (Var "x", Num 0)), 2), (Var("x"), [10]))]
+// let (nml:((int * SubTypes * int) *  (AExpr * (int)List) List))List) = [((0, SubB (GreaterExpr (Var "x", Num 0)), 2), (Var("x"), [10]))]
